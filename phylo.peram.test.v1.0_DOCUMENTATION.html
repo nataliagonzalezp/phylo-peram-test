@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — phylo.peram.test.R</title>
+  <style>
+    /* ── Base ────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 15px;
+      line-height: 1.75;
+      color: #2c2c2c;
+      background: #f7f6f3;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    .page-wrap {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    nav.sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: #1d3557;
+      color: #ccd6f6;
+      padding: 2rem 1.4rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    nav.sidebar .nav-title {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #a8c0dd;
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid #2e4a6a;
+    }
+
+    nav.sidebar a {
+      display: block;
+      color: #bdd0e8;
+      text-decoration: none;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.82rem;
+      padding: 0.28rem 0;
+      transition: color 0.15s;
+    }
+
+    nav.sidebar a:hover { color: #e8f0fe; }
+
+    nav.sidebar .nav-sub {
+      padding-left: 1rem;
+      font-size: 0.77rem;
+      color: #90aac8;
+    }
+
+    nav.sidebar .nav-sub a { color: #90aac8; }
+    nav.sidebar .nav-sub a:hover { color: #ccd6f6; }
+
+    /* Main content */
+    main {
+      flex: 1;
+      max-width: 900px;
+      padding: 3rem 3.5rem 5rem;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────── */
+    .doc-header {
+      border-left: 5px solid #1d3557;
+      padding: 1.8rem 2rem;
+      background: #ffffff;
+      margin-bottom: 2.8rem;
+      border-radius: 0 6px 6px 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+
+    .doc-header .script-name {
+      font-family: "Courier New", monospace;
+      font-size: 1rem;
+      color: #457b9d;
+      margin-bottom: 0.3rem;
+    }
+
+    .doc-header h1 {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: #1d3557;
+      margin-bottom: 1.1rem;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.2rem 1rem;
+      font-size: 0.88rem;
+    }
+
+    .meta-grid .label {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-weight: 600;
+      color: #555;
+      white-space: nowrap;
+    }
+
+    .meta-grid .value { color: #333; }
+
+    .author-block { line-height: 1.5; }
+
+    .badge-version {
+      display: inline-block;
+      background: #1d3557;
+      color: #fff;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.18rem 0.7rem;
+      border-radius: 20px;
+      vertical-align: middle;
+      margin-left: 0.4rem;
+    }
+
+    /* ── Section structure ───────────────────────────────────────── */
+    section { margin-bottom: 3.5rem; }
+
+    h2 {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1d3557;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding-bottom: 0.45rem;
+      border-bottom: 2px solid #1d3557;
+      margin-bottom: 1.4rem;
+    }
+
+    h3 {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #2c4a6e;
+      margin: 1.6rem 0 0.7rem;
+      padding-left: 0.8rem;
+      border-left: 3px solid #457b9d;
+    }
+
+    h4 {
+      font-family: "Courier New", monospace;
+      font-size: 0.9rem;
+      color: #1d3557;
+      margin: 1.4rem 0 0.5rem;
+      background: #eef2f7;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+    }
+
+    p { margin-bottom: 0.9rem; }
+
+    /* ── Lists ───────────────────────────────────────────────────── */
+    ul, ol {
+      margin: 0.5rem 0 0.9rem 1.6rem;
+    }
+
+    li { margin-bottom: 0.25rem; }
+
+    /* ── Code ────────────────────────────────────────────────────── */
+    code {
+      font-family: "Courier New", monospace;
+      font-size: 0.85em;
+      background: #eef2f7;
+      color: #1d3557;
+      padding: 0.12em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre {
+      background: #1e2d40;
+      color: #cdd9e5;
+      font-family: "Courier New", monospace;
+      font-size: 0.84rem;
+      line-height: 1.6;
+      padding: 1.1rem 1.4rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 0.8rem 0 1.2rem;
+    }
+
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    /* ── Tables ──────────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin: 0.8rem 0 1.4rem;
+    }
+
+    thead tr {
+      background: #1d3557;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    tbody tr:nth-child(even) { background: #f0f4f8; }
+    tbody tr:nth-child(odd)  { background: #ffffff; }
+
+    tbody td {
+      padding: 0.55rem 0.9rem;
+      border-bottom: 1px solid #dde4ec;
+      vertical-align: top;
+    }
+
+    /* ── Flag combination table ──────────────────────────────────── */
+    .flag-table td:nth-child(1),
+    .flag-table td:nth-child(2) {
+      font-family: "Courier New", monospace;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .flag-supported   { color: #2d6a2d; font-weight: 600; }
+    .flag-unsupported { color: #9e2828; font-weight: 600; }
+
+    /* ── Definition rows (param docs) ───────────────────────────── */
+    .param-block {
+      background: #f0f4f8;
+      border-left: 3px solid #457b9d;
+      padding: 0.7rem 1rem 0.7rem 1rem;
+      margin: 0.7rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .param-name {
+      font-family: "Courier New", monospace;
+      font-size: 0.88rem;
+      color: #1d3557;
+      font-weight: 700;
+    }
+
+    .param-default {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.75rem;
+      background: #dde8f5;
+      color: #2c4a6e;
+      padding: 0.1em 0.5em;
+      border-radius: 10px;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    /* ── Stage timeline ──────────────────────────────────────────── */
+    .stage-list { list-style: none; margin: 0; padding: 0; }
+
+    .stage-item {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .stage-num {
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      background: #1d3557;
+      color: #fff;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      margin-top: 0.1rem;
+    }
+
+    .stage-body { flex: 1; }
+
+    .stage-title {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #1d3557;
+      margin-bottom: 0.25rem;
+    }
+
+    .stage-body p { margin: 0; font-size: 0.88rem; }
+
+    /* ── Function blocks ─────────────────────────────────────────── */
+    .fn-block {
+      border: 1px solid #d0dbe8;
+      border-radius: 6px;
+      margin-bottom: 1.6rem;
+      overflow: hidden;
+    }
+
+    .fn-header {
+      background: #2c4a6e;
+      color: #e8f0fe;
+      padding: 0.6rem 1rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.88rem;
+    }
+
+    .fn-body { padding: 0.9rem 1rem; }
+
+    .fn-body h5 {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #457b9d;
+      margin: 0.9rem 0 0.35rem;
+    }
+
+    .fn-body h5:first-child { margin-top: 0; }
+
+    .fn-body p, .fn-body li { font-size: 0.87rem; }
+
+    .arg-table { font-size: 0.84rem; }
+    .arg-table td:first-child {
+      font-family: "Courier New", monospace;
+      color: #1d3557;
+      white-space: nowrap;
+      padding-right: 1.2rem;
+      vertical-align: top;
+    }
+
+    /* ── Error / Warning / Issue blocks ─────────────────────────── */
+    .trouble-block {
+      margin-bottom: 1.2rem;
+      border-radius: 0 4px 4px 0;
+      padding: 0.75rem 1rem;
+      font-size: 0.88rem;
+    }
+
+    .trouble-block.error   { border-left: 4px solid #c0392b; background: #fdf3f2; }
+    .trouble-block.warning { border-left: 4px solid #d68910; background: #fefaf0; }
+    .trouble-block.issue   { border-left: 4px solid #2874a6; background: #f0f6fb; }
+
+    .trouble-label {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+    }
+
+    .trouble-block.error   .trouble-label { color: #c0392b; }
+    .trouble-block.warning .trouble-label { color: #b7770d; }
+    .trouble-block.issue   .trouble-label { color: #2874a6; }
+
+    .trouble-msg {
+      font-family: "Courier New", monospace;
+      font-size: 0.83rem;
+      color: #444;
+      background: rgba(0,0,0,0.04);
+      padding: 0.3rem 0.6rem;
+      border-radius: 3px;
+      margin: 0.35rem 0;
+    }
+
+    .trouble-sub {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #666;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Glossary ────────────────────────────────────────────────── */
+    .glossary-item {
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .glossary-item:last-child { border-bottom: none; }
+
+    .glossary-term {
+      font-family: "Courier New", monospace;
+      font-weight: 700;
+      color: #1d3557;
+      font-size: 0.9rem;
+    }
+
+    .glossary-def {
+      font-size: 0.88rem;
+      color: #444;
+      margin-top: 0.2rem;
+    }
+
+    /* ── Output file table ───────────────────────────────────────── */
+    .output-name {
+      font-family: "Courier New", monospace;
+      font-size: 0.81rem;
+      color: #1d3557;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────────── */
+    footer {
+      margin-top: 4rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid #ccd4de;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.78rem;
+      color: #888;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 750px) {
+      nav.sidebar { display: none; }
+      main { padding: 1.5rem 1.2rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- ── Sidebar navigation ──────────────────────────────────────── -->
+  <nav class="sidebar">
+    <div class="nav-title">Contents</div>
+    <a href="#overview">1. Purpose &amp; Overview</a>
+    <a href="#packages">2. Required Packages</a>
+    <a href="#inputs">3. Input Files</a>
+    <div class="nav-sub">
+      <a href="#tps-file">3.1 TPS file</a>
+      <a href="#tree-file">3.2 Tree file</a>
+    </div>
+    <a href="#parameters">4. User-defined Parameters</a>
+    <div class="nav-sub">
+      <a href="#param-files">4.1 File names</a>
+      <a href="#param-tps">4.2 TPS identifiers</a>
+      <a href="#param-flags">4.3 Input mode flags</a>
+      <a href="#param-analytical">4.4 Analytical parameters</a>
+    </div>
+    <a href="#howto">5. How to Run</a>
+    <a href="#workflow">6. Analytical Workflow</a>
+    <a href="#functions">7. Functions Reference</a>
+    <a href="#outputs">8. Output Files</a>
+    <a href="#rules">9. Important Rules</a>
+    <div class="nav-sub">
+      <a href="#rule-bootstrap">9.1 Bootstrap recovery</a>
+      <a href="#rule-tree">9.2 Tree integrity</a>
+      <a href="#rule-brlen">9.3 Branch lengths</a>
+      <a href="#rule-validity">9.4 Bootstrap validity</a>
+    </div>
+    <a href="#customization">10. Customization</a>
+    <a href="#troubleshooting">11. Troubleshooting</a>
+    <a href="#glossary">12. Glossary</a>
+  </nav>
+
+  <!-- ── Main content ────────────────────────────────────────────── -->
+  <main>
+
+    <!-- Header -->
+    <div class="doc-header">
+      <div class="script-name">phylo.peram.test.R</div>
+      <h1>Phylogenetic Peramorphosis Test with Bootstrap Recovery
+        <span class="badge-version">v1.0</span>
+      </h1>
+      <div class="meta-grid">
+        <span class="label">Authors</span>
+        <span class="value author-block">
+          Natalia González-Piñeres<br>
+          <span style="color:#666;font-size:0.9em;">Becaria doctoral — Unidad Ejecutora Lillo (UEL-FML-CONICET)</span><br><br>
+          Santiago A. Catalano<br>
+          <span style="color:#666;font-size:0.9em;">Investigador Independiente CONICET — Unidad Ejecutora Lillo (UEL-FML-CONICET) — FCNeIML-UNT</span>
+        </span>
+        <span class="label">Developed with</span>
+        <span class="value">R version 4.5.3 (2026-03-11) "Reassured Reassurer"</span>
+        <span class="label">Citation</span>
+        <span class="value">
+          González-Piñeres &amp; Catalano (2026, in prep.)<br>
+          Piras et al. (2011)<br>
+          Adams et al. (geomorph package references)
+        </span>
+      </div>
+    </div>
+
+    <!-- ── 1. Purpose ────────────────────────────────────────────── -->
+    <section id="overview">
+      <h2>1. Purpose and Overview</h2>
+
+      <p>This script implements a phylogenetic extension of the peramorphosis
+      test (Piras et al. 2011) to infer heterochronic events across all
+      ancestor-descendant pairs in a phylogenetic tree.</p>
+
+      <p>Heterochrony refers to evolutionary changes in the timing or rate of
+      developmental events. This script classifies each phylogenetic branch as:</p>
+
+      <table>
+        <thead><tr><th>Classification</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:#1a5276;">PERAMORPHOSIS</strong></td>
+            <td>The descendant has a more developmentally advanced shape than its ancestor (overdevelopment).</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#922b21;">PAEDOMORPHOSIS</strong></td>
+            <td>The descendant retains a more juvenile-like shape than the ancestor (underdevelopment / retention of juvenile features).</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#555;">NC</strong></td>
+            <td>No Change — the difference between distances is below the specified threshold; the branch is not classified as heterochronic.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The method uses geometric morphometric data (landmark coordinates) and
+      a developmental progress indicator extracted from a TPS file, combined
+      with a phylogenetic tree. For each species, the expected shape at maximum
+      developmental time is estimated via Procrustes regression. Ancestral shapes
+      are reconstructed using Maximum Likelihood on phylogenetic PCA scores
+      (via geomorph's <code>gm.prcomp</code>). Bootstrap resampling is then used
+      to assess the robustness (recovery frequency) of each inferred pattern.</p>
+
+      <p>The script accepts both pre-aligned and raw (unaligned) landmark
+      coordinates, and can derive the developmental indicator from
+      log(centroid size) when no AGE field is available in the TPS file.
+      It also handles trees without branch lengths by assigning unit lengths
+      and issuing a warning.</p>
+
+      <p>The input mode is <strong>not inferred automatically</strong> from the TPS
+      file — the user must explicitly set the corresponding flags in the script
+      (see <a href="#param-flags">Section 4.3</a>). The rule used to define the
+      developmental progress indicator is:</p>
+
+      <ol>
+        <li><strong>Raw / unaligned TPS without an AGE field:</strong> the script
+        aligns landmarks, calculates centroid size from the original unaligned
+        coordinates, applies a log transformation, and uses log(centroid size)
+        as the developmental progress indicator.</li>
+        <li><strong>Pre-aligned TPS with an AGE field:</strong> the script reads
+        aligned coordinates directly and uses the AGE values as the
+        developmental progress indicator.</li>
+        <li><strong>Pre-aligned TPS without an AGE field:</strong> size information
+        has been removed by alignment; the script stops and asks the user to
+        provide an external developmental progress indicator.</li>
+      </ol>
+
+      <p>By default the script assumes <strong>pre-aligned coordinates</strong> with
+      an <strong>AGE field present</strong> (<code>coords_aligned = TRUE</code>,
+      <code>has_age_label = TRUE</code>).</p>
+    </section>
+
+    <!-- ── 2. Packages ───────────────────────────────────────────── -->
+    <section id="packages">
+      <h2>2. Required R Packages</h2>
+      <p>The following packages must be installed before running the script.
+      Install missing packages with
+      <code>install.packages("package_name")</code>.</p>
+
+      <table>
+        <thead><tr><th>Package</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>abind</code></td><td>Array binding — combining bootstrap coordinate arrays</td></tr>
+          <tr><td><code>ape</code></td><td>Reading and handling phylogenetic trees (Newick format)</td></tr>
+          <tr><td><code>borealis</code></td><td>Geometric morphometrics utilities</td></tr>
+          <tr><td><code>devtools</code></td><td>Package development tools (may be needed for some installs)</td></tr>
+          <tr><td><code>dplyr</code></td><td>Data manipulation: <code>group_by</code>, <code>summarise</code>, <code>bind_rows</code>, <code>select</code></td></tr>
+          <tr><td><code>geiger</code></td><td>Phylogenetic comparative methods</td></tr>
+          <tr><td><code>geomorph</code></td><td>Core geometric morphometrics: <code>readland.tps</code>, <code>gpagen</code>, <code>procD.lm</code>, <code>gm.prcomp</code>, <code>geomorph.data.frame</code></td></tr>
+          <tr><td><code>ggplot2</code></td><td>Plotting (loaded as part of the tidyverse ecosystem)</td></tr>
+          <tr><td><code>ggpubr</code></td><td>Publication-ready ggplot2 extensions</td></tr>
+          <tr><td><code>ggthemes</code></td><td>Additional themes for ggplot2</td></tr>
+          <tr><td><code>gridExtra</code></td><td>Arranging multiple plots</td></tr>
+          <tr><td><code>Morpho</code></td><td>Morphometric shape analysis tools</td></tr>
+          <tr><td><code>phytools</code></td><td>Extended phylogenetic tools (ancestral state reconstruction)</td></tr>
+          <tr><td><code>readr</code></td><td>Reading/writing CSV files (<code>write_csv</code>)</td></tr>
+          <tr><td><code>tidyr</code></td><td>Data reshaping</td></tr>
+          <tr><td><code>tidyverse</code></td><td>Collection of data science packages (loads dplyr, ggplot2, etc.)</td></tr>
+          <tr><td><code>viridis</code></td><td>Colorblind-friendly color palettes</td></tr>
+        </tbody>
+      </table>
+
+      <p style="font-size:0.87rem;color:#555;">Note: if <code>tidyverse</code> is already loaded,
+      many individual packages (dplyr, ggplot2, readr, tidyr) are already available.</p>
+    </section>
+
+    <!-- ── 3. Input files ────────────────────────────────────────── -->
+    <section id="inputs">
+      <h2>3. Input Files</h2>
+      <p>The script requires two input files placed in the same working
+      directory as the script, or with full paths specified: a TPS file
+      with the coordinates and a reference tree.</p>
+
+      <h3 id="tps-file">3.1 TPS File (.tps)</h3>
+      <p>A standard Thin-Plate Spline file containing landmark coordinates and
+      specimen identifiers. Depending on the flags set in
+      <a href="#param-flags">Section 4.3</a>, the file may or may not contain
+      an <code>AGE=</code> field, and coordinates may or may not be pre-aligned.</p>
+
+      <p><strong>With AGE label:</strong></p>
+      <pre><code>LM=10
+0.123 0.456
+0.789 0.012
+... (one row per landmark)
+ID=SpeciesName
+AGE=0.75</code></pre>
+
+      <p><strong>Without AGE label (raw coordinates):</strong></p>
+      <pre><code>LM=10
+0.123 0.456
+0.789 0.012
+... (one row per landmark)
+ID=SpeciesName</code></pre>
+
+      <p><strong>Requirements — all cases:</strong></p>
+      <ul>
+        <li>Specimen IDs (<code>ID=</code>) must match species names in the phylogenetic tree,
+        or must be modifiable to species names (see <a href="#custom-ids">Section 10.1</a>).</li>
+        <li>All specimens of the same species must share the same species label.</li>
+        <li>Each species must have at least 2 specimens.</li>
+      </ul>
+
+      <p><strong>Additional requirements when <code>has_age_label = TRUE</code>:</strong></p>
+      <ul>
+        <li>Every specimen must have a numeric value for the developmental indicator
+        (field specified by <code>tps_devtime_keyword</code>, default: <code>AGE</code>).</li>
+        <li>The number of <code>AGE=</code> lines must equal the number of specimens.</li>
+        <li>Each species must have variation in the developmental indicator
+        (not all specimens at the same AGE value).</li>
+      </ul>
+
+      <p><strong>Additional requirements when <code>coords_aligned = FALSE</code>:</strong></p>
+      <ul>
+        <li>Coordinates must be raw (unaligned) landmark data in the original
+        coordinate space. <code>gpagen()</code> will perform Generalized Procrustes Analysis.</li>
+      </ul>
+
+      <h3 id="tree-file">3.2 Tree File (.tre)</h3>
+      <p>A phylogenetic tree in Newick format.</p>
+      <ul>
+        <li>All tip labels must exactly match species names in the TPS file
+        (after any ID parsing; see <a href="#custom-ids">Section 10.1</a>).</li>
+        <li>Node labels are automatically removed by the script (not used).</li>
+        <li>Branch lengths are used for ancestral state reconstruction when present.
+        If absent, all are set to 1 and a warning is issued (see <a href="#rule-brlen">Section 9.3</a>).</li>
+        <li>For plotting, equal branch lengths are applied to a local copy only;
+        the calculation tree is never modified.</li>
+        <li>The tree must be fully resolved (binary) for ancestral reconstruction.</li>
+      </ul>
+    </section>
+
+    <!-- ── 4. Parameters ─────────────────────────────────────────── -->
+    <section id="parameters">
+      <h2>4. User-Defined Parameters</h2>
+      <p>These are the only values a user needs to modify before running the
+      script. They are located at the top of the script under the section
+      <strong>USER-DEFINED PARAMETERS</strong>.</p>
+
+      <h3 id="param-files">4.1 Input File Names</h3>
+
+      <div class="param-block">
+        <span class="param-name">TPS_file &lt;- "yourfile.tps"</span><br>
+        The filename (or full path) of the TPS input file.
+        Change this to match your actual TPS file name.
+      </div>
+
+      <div class="param-block">
+        <span class="param-name">tree_file &lt;- "yourtree.tre"</span><br>
+        The filename (or full path) of the Newick tree file.
+        Change this to match your actual tree file name.
+      </div>
+
+      <h3 id="param-tps">4.2 TPS Field Identifiers</h3>
+
+      <div class="param-block">
+        <span class="param-name">tps_specID</span>
+        <span class="param-default">default: "ID"</span><br>
+        The keyword used in the TPS file to identify specimens.
+        Matches lines of the form <code>ID=SpeciesName</code>.
+        Change only if your TPS file uses a different keyword (e.g., <code>"SPECIMEN"</code>).
+      </div>
+
+      <div class="param-block">
+        <span class="param-name">tps_devtime_keyword</span>
+        <span class="param-default">default: "AGE"</span><br>
+        The keyword used in the TPS file for the developmental/age indicator.
+        Matches lines of the form <code>AGE=0.75</code>.
+        Change this if your TPS uses a different keyword (e.g., <code>"CS"</code>, <code>"DEVTIME"</code>).
+        Only used when <code>has_age_label = TRUE</code>.
+      </div>
+
+      <h3 id="param-flags">4.3 Input Mode Flags</h3>
+
+      <div class="param-block">
+        <span class="param-name">coords_aligned</span>
+        <span class="param-default">default: TRUE</span><br>
+        Set to <code>TRUE</code> if the TPS file contains Procrustes-aligned (superimposed) landmark coordinates.<br>
+        Set to <code>FALSE</code> if the TPS contains raw (unaligned) coordinates —
+        <code>gpagen()</code> will be called automatically.
+      </div>
+
+      <div class="param-block">
+        <span class="param-name">has_age_label</span>
+        <span class="param-default">default: TRUE</span><br>
+        Set to <code>TRUE</code> if the TPS file contains an <code>AGE=</code> field for each specimen.<br>
+        Set to <code>FALSE</code> if no such field is present. In this case
+        <code>coords_aligned</code> must also be <code>FALSE</code>, and
+        log(centroid size) from <code>gpagen()</code> will be used as the developmental indicator.
+      </div>
+
+      <p><strong>Valid flag combinations:</strong></p>
+
+      <table class="flag-table">
+        <thead>
+          <tr>
+            <th>coords_aligned</th>
+            <th>has_age_label</th>
+            <th>Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>TRUE</td>
+            <td>TRUE</td>
+            <td><span class="flag-supported">✔ Supported</span> — Standard workflow. Pre-aligned coordinates and AGE labels used directly. No alignment performed.</td>
+          </tr>
+          <tr>
+            <td>FALSE</td>
+            <td>FALSE</td>
+            <td><span class="flag-supported">✔ Supported</span> — Raw coordinates, no AGE field. <code>gpagen()</code> aligns coordinates and extracts centroid sizes. log(centroid size) assigned as Devtime.</td>
+          </tr>
+          <tr>
+            <td>FALSE</td>
+            <td>TRUE</td>
+            <td><span class="flag-supported">✔ Supported</span> — Raw coordinates with AGE labels. <code>gpagen()</code> aligns coordinates. Provided AGE values used as Devtime.</td>
+          </tr>
+          <tr>
+            <td>TRUE</td>
+            <td>FALSE</td>
+            <td><span class="flag-unsupported">✘ Not supported</span> — Script stops with an error asking to provide AGE= labels or set <code>coords_aligned = FALSE</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="param-analytical">4.4 Analytical Parameters</h3>
+
+      <div class="param-block">
+        <span class="param-name">resampling_proportion</span>
+        <span class="param-default">default: 0.66</span><br>
+        Proportion of specimens retained per species in each bootstrap replicate (66% by default).
+        Range: a value between 0 and 1 (exclusive).
+        Species with exactly 2 specimens are always kept complete regardless of this value.
+      </div>
+
+      <div class="param-block">
+        <span class="param-name">diff_ratio_threshold</span>
+        <span class="param-default">default: 0.10</span><br>
+        Threshold for the distance-ratio used to classify branches.<br>
+        <code>diff_ratio = |dist_A − dist_B| / mean(dist_A, dist_B)</code><br>
+        <ul style="margin-top:0.4rem;">
+          <li>diff_ratio &lt; threshold → <strong>NC</strong></li>
+          <li>diff_ratio ≥ threshold and dist_A &gt; dist_B → <strong>PAEDOMORPHOSIS</strong></li>
+          <li>diff_ratio ≥ threshold and dist_A &lt; dist_B → <strong>PERAMORPHOSIS</strong></li>
+        </ul>
+        Increasing this value makes the test more conservative (fewer heterochronic events
+        detected). Decreasing it makes it more sensitive but may increase false positives.
+      </div>
+
+      <div class="param-block">
+        <span class="param-name">n_iter</span>
+        <span class="param-default">default: 100</span><br>
+        Target number of <em>valid</em> bootstrap replicates. The script will attempt up to
+        <code>max(1000, n_iter × 20)</code> total draws to reach this target.
+        A replicate is invalid if any species loses developmental variation or if a model fails.
+      </div>
+
+      <div class="param-block">
+        <span class="param-name">set.seed(5422)</span><br>
+        Random seed for reproducibility. Change this value to obtain a different random
+        stream, or remove the line to disable reproducibility.
+      </div>
+    </section>
+
+    <!-- ── 5. How to run ─────────────────────────────────────────── -->
+    <section id="howto">
+      <h2>5. How to Run the Script</h2>
+
+      <ol>
+        <li>
+          <strong>Install packages</strong> (first time only)<br>
+          <pre><code>install.packages(c("abind","ape","borealis","devtools","dplyr","geiger",
+                   "geomorph","ggplot2","ggpubr","ggthemes","gridExtra",
+                   "Morpho","phytools","readr","tidyr","tidyverse","viridis"))</code></pre>
+        </li>
+        <li>
+          <strong>Set the working directory</strong><br>
+          <pre><code>setwd("path/to/your/folder")</code></pre>
+          Or in RStudio: <em>Session &gt; Set Working Directory &gt; To Source File Location.</em>
+        </li>
+        <li>
+          <strong>Edit user-defined parameters</strong><br>
+          Open <code>phylo.peram.test.R</code> in a text editor or RStudio.
+          Update the values described in Section 4. Pay special attention to
+          <code>coords_aligned</code> and <code>has_age_label</code>
+          (<a href="#param-flags">Section 4.3</a>).
+        </li>
+        <li>
+          <strong>Run the script</strong><br>
+          In RStudio: click <em>Source</em>.<br>
+          In the R console:
+          <pre><code>source("phylo.peram.test.R")</code></pre>
+        </li>
+        <li>
+          <strong>Check the console output</strong><br>
+          The script prints informational messages about the input mode,
+          then bootstrap progress:
+          <pre><code>Bootstrap attempt: N
+ -> Valid replicate saved! Total: M</code></pre>
+          At the end it prints the results table and a summary of output files.
+        </li>
+        <li>
+          <strong>Inspect output files</strong><br>
+          All files are written to the working directory.
+          See <a href="#outputs">Section 8</a> for descriptions.
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── 6. Workflow ───────────────────────────────────────────── -->
+    <section id="workflow">
+      <h2>6. Analytical Workflow</h2>
+      <p>The script executes the following stages in order:</p>
+
+      <ul class="stage-list">
+
+        <li class="stage-item">
+          <div class="stage-num">1</div>
+          <div class="stage-body">
+            <div class="stage-title">Clean Environment</div>
+            <p>Removes all objects from the R workspace (<code>rm(list = ls())</code>) to ensure a clean start.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">2</div>
+          <div class="stage-body">
+            <div class="stage-title">Load Libraries</div>
+            <p>Loads all required packages.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">3</div>
+          <div class="stage-body">
+            <div class="stage-title">User-Defined Parameters</div>
+            <p>Sets file names, input mode flags (<code>coords_aligned</code>, <code>has_age_label</code>),
+            analytical parameters, and auto-generates output file names based on the chosen values.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">4</div>
+          <div class="stage-body">
+            <div class="stage-title">Extract Data from TPS File</div>
+            <p>Reads landmark coordinates with <code>geomorph::readland.tps()</code>. If
+            <code>has_age_label = TRUE</code>, also parses <code>AGE=</code> lines. Constructs an
+            in-memory <code>geomorph.data.frame</code> (gdf) with fields: <code>Data</code> (coordinates),
+            <code>Devtime</code> (if AGE present), <code>Species</code>, <code>ID</code>.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">5</div>
+          <div class="stage-body">
+            <div class="stage-title">Align Coordinates &amp; Assign Developmental Indicator</div>
+            <p>Behavior depends on <code>coords_aligned</code> and <code>has_age_label</code>:</p>
+            <ul style="font-size:0.87rem;">
+              <li><code>TRUE / TRUE</code> — no action; data used as-is.</li>
+              <li><code>FALSE / FALSE</code> — <code>gpagen()</code> aligns coordinates; log(centroid size) assigned as Devtime.</li>
+              <li><code>FALSE / TRUE</code> — <code>gpagen()</code> aligns coordinates; AGE-derived Devtime kept.</li>
+              <li><code>TRUE / FALSE</code> — script stops with an informative error.</li>
+            </ul>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">6</div>
+          <div class="stage-body">
+            <div class="stage-title">Load Tree</div>
+            <p>Reads the Newick tree with <code>ape::read.tree()</code>. Node labels are removed.
+            If <code>edge.length</code> is <code>NULL</code>, all branch lengths are set to 1
+            and a warning is issued. The resulting <code>phylo_tree</code> is used unchanged for
+            all calculations.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">7</div>
+          <div class="stage-body">
+            <div class="stage-title">Load and Prepare Data</div>
+            <p>Extracts coordinate array, species labels, and specimen names from the gdf.
+            Specimen names are reformatted as <code>SpeciesName_IND_01</code>, <code>_IND_02</code>, etc.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">8</div>
+          <div class="stage-body">
+            <div class="stage-title">Standardize Developmental Indicator</div>
+            <p>Scales Devtime to [0, 1] within each species independently using min-max normalization:
+            <code>scaled = (x − min) / (max − min)</code>.
+            A small value (1e-7) replaces any zero to avoid regression issues at the origin.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">9</div>
+          <div class="stage-body">
+            <div class="stage-title">Sort Data by Species</div>
+            <p>Reorders all data arrays so that specimens are grouped by species,
+            ensuring consistent indexing throughout.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">10</div>
+          <div class="stage-body">
+            <div class="stage-title">Check Tree and Data Match</div>
+            <p>Verifies that all tree tip labels are present in the morphometric data.
+            Species present in data but absent from tree generate a warning and are
+            excluded from phylogenetic reconstruction.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">11</div>
+          <div class="stage-body">
+            <div class="stage-title">Estimate Shared Origin Shape (shape_0)</div>
+            <p>Fits a Procrustes regression <code>Data ~ Devtime * SpeciesData</code> across
+            all specimens. Predicts the shared juvenile archetype (shape_0) at Devtime = 0,
+            representing the common ancestral juvenile morphology.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">12</div>
+          <div class="stage-body">
+            <div class="stage-title">Estimate Maximum Shapes (predicted_shapesMAX)</div>
+            <p>For each species, fits an independent Procrustes regression
+            (<code>coords ~ DevtimeTwo</code>) and predicts the shape at the maximum
+            observed developmental time — the expected adult or maximum-development shape.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">13</div>
+          <div class="stage-body">
+            <div class="stage-title">Reconstruct Ancestral Shapes (AncestralCoordinatesMAX)</div>
+            <p>Projects maximum shapes onto a phylogenetic PCA (<code>gm.prcomp</code> with
+            <code>phy = phylo_tree</code>), performing ancestral state reconstruction via
+            Maximum Likelihood on PC scores. Ancestral node shapes are back-projected to
+            landmark space.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">14</div>
+          <div class="stage-body">
+            <div class="stage-title">Infer Observed Heterochronic Trends</div>
+            <p>For each tree edge: retrieves ancestor and descendant shapes, computes
+            dist_A (ancestor → shape_0) and dist_B (shape_0 → descendant max shape),
+            and classifies using <code>classify_heterochrony()</code>. Results stored in
+            <code>DistanceResults</code>.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">15</div>
+          <div class="stage-body">
+            <div class="stage-title">Observed Tree Plot</div>
+            <p>Produces a PDF phylogeny with branches labelled PERA / PAEDO / NC
+            and color-coded (blue / red / gray). Uses equal branch lengths for visual
+            clarity only.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">16</div>
+          <div class="stage-body">
+            <div class="stage-title">Bootstrap Resampling</div>
+            <p>Repeats the analysis <code>n_iter</code> times with random subsamples
+            (retaining <code>resampling_proportion</code> per species, minimum 2).
+            Replicates failing validity checks are discarded.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">17</div>
+          <div class="stage-body">
+            <div class="stage-title">Aggregate Bootstrap Results</div>
+            <p>Counts replicates matching the observed trend per branch.
+            Recovery% = matches / valid_replicates × 100.
+            Writes results and raw bootstrap trends to CSV.</p>
+          </div>
+        </li>
+
+        <li class="stage-item">
+          <div class="stage-num">18</div>
+          <div class="stage-body">
+            <div class="stage-title">Bootstrap Tree Plot</div>
+            <p>Produces a second PDF labelled with heterochronic category and
+            bootstrap recovery percentage per branch.</p>
+          </div>
+        </li>
+
+      </ul>
+    </section>
+
+    <!-- ── 7. Functions ──────────────────────────────────────────── -->
+    <section id="functions">
+      <h2>7. Internal Functions Reference</h2>
+      <p>The script defines six internal functions:</p>
+
+      <!-- classify_heterochrony -->
+      <div class="fn-block">
+        <div class="fn-header">classify_heterochrony(dist_A, dist_B, diff_ratio_threshold)</div>
+        <div class="fn-body">
+          <h5>Purpose</h5>
+          <p>Classifies a single ancestor-descendant pair as PERAMORPHOSIS, PAEDOMORPHOSIS,
+          or NC based on two Procrustes distances.</p>
+          <h5>Arguments</h5>
+          <table class="arg-table">
+            <tr><td>dist_A</td><td>Procrustes distance from ancestor shape to shared juvenile archetype (shape_0).</td></tr>
+            <tr><td>dist_B</td><td>Procrustes distance from shared juvenile archetype (shape_0) to descendant maximum shape.</td></tr>
+            <tr><td>diff_ratio_threshold</td><td>Numeric threshold (same as the global parameter).</td></tr>
+          </table>
+          <h5>Returns</h5>
+          <p>A list with <code>$trend</code> (character) and <code>$diff_ratio</code> (numeric).</p>
+          <h5>Logic</h5>
+          <pre><code>diff_ratio = |dist_A - dist_B| / mean(dist_A, dist_B)
+diff_ratio &lt; threshold        →  "NC"
+dist_A &gt; dist_B               →  "PAEDOMORPHOSIS"
+dist_A &lt; dist_B               →  "PERAMORPHOSIS"</code></pre>
+        </div>
+      </div>
+
+      <!-- estimate_max_shapes -->
+      <div class="fn-block">
+        <div class="fn-header">estimate_max_shapes(coords, devtimes, species, max_devtimes)</div>
+        <div class="fn-body">
+          <h5>Purpose</h5>
+          <p>Estimates the predicted landmark shape at maximum developmental time
+          for each species using species-specific Procrustes regressions.</p>
+          <h5>Arguments</h5>
+          <table class="arg-table">
+            <tr><td>coords</td><td>3D landmark array [landmarks × dims × specimens].</td></tr>
+            <tr><td>devtimes</td><td>Numeric vector of scaled developmental indicator values.</td></tr>
+            <tr><td>species</td><td>Factor of species labels, one per specimen.</td></tr>
+            <tr><td>max_devtimes</td><td>Data frame with columns <code>$Species</code> and <code>$MaxDevtime</code>.</td></tr>
+          </table>
+          <h5>Returns</h5>
+          <p>Named 3D array [landmarks × dims × n_species] with one predicted shape per species.</p>
+          <h5>Notes</h5>
+          <ul>
+            <li>Requires at least 2 specimens per species.</li>
+            <li>Requires variation in devtimes within each species.</li>
+            <li>Uses <code>geomorph::procD.lm()</code> and <code>predict()</code> internally.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- reconstruct_ancestral_shapes -->
+      <div class="fn-block">
+        <div class="fn-header">reconstruct_ancestral_shapes(predicted_shapes, phylo_tree)</div>
+        <div class="fn-body">
+          <h5>Purpose</h5>
+          <p>Reconstructs ancestral landmark configurations at internal tree nodes using
+          phylogenetic PCA with Maximum Likelihood ancestral state estimation.</p>
+          <h5>Arguments</h5>
+          <table class="arg-table">
+            <tr><td>predicted_shapes</td><td>Named 3D array of tip (species) max shapes from <code>estimate_max_shapes()</code>.</td></tr>
+            <tr><td>phylo_tree</td><td>Phylogenetic tree (ape "phylo" object).</td></tr>
+          </table>
+          <h5>Returns</h5>
+          <p>Named 3D array [landmarks × dims × n_nodes] — one reconstructed shape per internal node.</p>
+          <h5>Notes</h5>
+          <ul>
+            <li>Uses <code>geomorph::gm.prcomp(phy = phylo_tree)</code> for simultaneous PCA and ancestral reconstruction.</li>
+            <li>Ancestral PC scores are back-transformed to landmark coordinates.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- infer_edge_trends -->
+      <div class="fn-block">
+        <div class="fn-header">infer_edge_trends(shape_0, predicted_shapesMAX, AncestralCoordinatesMAX, phylo_tree, diff_ratio_threshold)</div>
+        <div class="fn-body">
+          <h5>Purpose</h5>
+          <p>Iterates over all edges of the phylogenetic tree and classifies each
+          ancestor-descendant pair.</p>
+          <h5>Arguments</h5>
+          <table class="arg-table">
+            <tr><td>shape_0</td><td>Matrix [landmarks × dims] — the shared juvenile origin shape (Devtime = 0).</td></tr>
+            <tr><td>predicted_shapesMAX</td><td>Named 3D array of tip maximum shapes.</td></tr>
+            <tr><td>AncestralCoordinatesMAX</td><td>Named 3D array of reconstructed ancestral shapes.</td></tr>
+            <tr><td>phylo_tree</td><td>Phylogenetic tree (ape "phylo" object).</td></tr>
+            <tr><td>diff_ratio_threshold</td><td>Numeric threshold.</td></tr>
+          </table>
+          <h5>Returns</h5>
+          <p>Data frame with one row per tree edge: <code>Ancestor</code>, <code>Descendant</code>,
+          <code>DistanceA</code>, <code>DistanceB</code>, <code>DiffRatio</code>, <code>HeterochronyTrend</code>.</p>
+        </div>
+      </div>
+
+      <!-- draw_species_sample -->
+      <div class="fn-block">
+        <div class="fn-header">draw_species_sample(inds, devtimes, resampling_proportion, min_keep = 2)</div>
+        <div class="fn-body">
+          <h5>Purpose</h5>
+          <p>Randomly selects a subset of specimen indices for one species during bootstrap resampling.</p>
+          <h5>Arguments</h5>
+          <table class="arg-table">
+            <tr><td>inds</td><td>Integer vector of specimen indices for one species.</td></tr>
+            <tr><td>devtimes</td><td>Developmental time values (passed for context; selection is index-based).</td></tr>
+            <tr><td>resampling_proportion</td><td>Proportion of specimens to retain (0–1).</td></tr>
+            <tr><td>min_keep</td><td>Minimum specimens to keep (default: 2).</td></tr>
+          </table>
+          <h5>Returns</h5>
+          <p>Integer vector of selected positions within <code>inds</code> (not global indices).</p>
+          <h5>Notes</h5>
+          <ul>
+            <li>If <code>length(inds) == 2</code>, all specimens are always returned (no resampling).</li>
+            <li>Effective keep count: <code>max(min_keep, round(n × resampling_proportion))</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- prepare_plot_variables -->
+      <div class="fn-block">
+        <div class="fn-header">prepare_plot_variables(results, phylo_tree)</div>
+        <div class="fn-body">
+          <h5>Purpose</h5>
+          <p>Adds plotting-specific columns to the results data frame before tree visualization.</p>
+          <h5>Returns</h5>
+          <p>Same data frame with additional columns:
+          <code>DescNum</code>, <code>AncNum</code>,
+          <code>TrendAbbrev</code> ("PERA" / "PAEDO" / "NC"),
+          <code>TrendColor</code> ("blue" / "red" / "gray70").</p>
+        </div>
+      </div>
+
+      <!-- plot_heterochrony_tree -->
+      <div class="fn-block">
+        <div class="fn-header">plot_heterochrony_tree(phylo_tree, results, pdf_name, plot_title, show_recovery = FALSE)</div>
+        <div class="fn-body">
+          <h5>Purpose</h5>
+          <p>Produces a PDF file with the phylogenetic tree annotated by heterochronic
+          classification per branch.</p>
+          <h5>Arguments</h5>
+          <table class="arg-table">
+            <tr><td>phylo_tree</td><td>Phylogenetic tree with true branch lengths.</td></tr>
+            <tr><td>results</td><td>Results data frame including TrendAbbrev and TrendColor.</td></tr>
+            <tr><td>pdf_name</td><td>Output PDF filename (character).</td></tr>
+            <tr><td>plot_title</td><td>Title displayed on the plot (character).</td></tr>
+            <tr><td>show_recovery</td><td>Logical — if TRUE, displays bootstrap recovery % on each branch.</td></tr>
+          </table>
+          <h5>Output</h5>
+          <p>16 × 10 inch PDF with colored edge labels (PERA blue, PAEDO red, NC gray),
+          DiffRatio values, optional Recovery%, node circles, and legend.</p>
+          <h5>Important</h5>
+          <p>Equal branch lengths are applied to a <strong>local copy</strong> of the tree
+          for plotting only. The original <code>phylo_tree</code> is never modified.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── 8. Outputs ────────────────────────────────────────────── -->
+    <section id="outputs">
+      <h2>8. Output Files</h2>
+      <p>All output files are written to the working directory. File names are
+      automatically generated based on parameter values.</p>
+      <p>With default parameters (<code>resampling_proportion = 0.66</code>,
+      <code>diff_ratio_threshold = 0.10</code>):</p>
+
+      <table>
+        <thead><tr><th>File</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="output-name">HeterochronicChanges_10_DThreshold.pdf</td>
+            <td>Observed tree plot (no bootstrap info)</td>
+          </tr>
+          <tr>
+            <td class="output-name">HeterochronicChanges_Bootstrap66_10_DThreshold.pdf</td>
+            <td>Bootstrap tree plot (with recovery %)</td>
+          </tr>
+          <tr>
+            <td class="output-name">66Keep10Threshold_TotalSample_Heterochrony_Results_WithRecovery.csv</td>
+            <td>Main results table with recovery percentages</td>
+          </tr>
+          <tr>
+            <td class="output-name">66Keep10Threshold_RawBootstrapTrends.csv</td>
+            <td>All bootstrap replicate results</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>8.1 Main Results CSV</h3>
+      <table>
+        <thead><tr><th>Column</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>Ancestor</code></td><td>Node number of the ancestor (character)</td></tr>
+          <tr><td><code>Descendant</code></td><td>Tip name or node number of the descendant</td></tr>
+          <tr><td><code>DistanceA</code></td><td>Procrustes distance: ancestor shape → shared juvenile archetype</td></tr>
+          <tr><td><code>DistanceB</code></td><td>Procrustes distance: shared juvenile archetype → descendant shape</td></tr>
+          <tr><td><code>DiffRatio</code></td><td>|DistanceA − DistanceB| / mean(DistanceA, DistanceB) — rounded to 3 decimals</td></tr>
+          <tr><td><code>HeterochronyTrend</code></td><td>"PERAMORPHOSIS", "PAEDOMORPHOSIS", or "NC"</td></tr>
+          <tr><td><code>DescNum</code></td><td>Integer node number for the descendant (internal use)</td></tr>
+          <tr><td><code>AncNum</code></td><td>Integer node number for the ancestor (internal use)</td></tr>
+          <tr><td><code>TrendAbbrev</code></td><td>"PERA", "PAEDO", or "NC"</td></tr>
+          <tr><td><code>TrendColor</code></td><td>Plot color: "blue", "red", or "gray70"</td></tr>
+          <tr><td><code>ObservedTrend</code></td><td>Same as HeterochronyTrend (preserved for bootstrap comparison)</td></tr>
+          <tr><td><code>RecoveryPercentage</code></td><td>% of valid bootstrap replicates matching the observed trend</td></tr>
+        </tbody>
+      </table>
+
+      <h3>8.2 Raw Bootstrap Trends CSV</h3>
+      <table>
+        <thead><tr><th>Column</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>BootstrapListID</code></td><td>Internal list index of the replicate</td></tr>
+          <tr><td><code>Ancestor</code></td><td>Node number of the ancestor</td></tr>
+          <tr><td><code>Descendant</code></td><td>Tip name or node number</td></tr>
+          <tr><td><code>DistanceA</code></td><td>Procrustes distance in this replicate</td></tr>
+          <tr><td><code>DistanceB</code></td><td>Procrustes distance in this replicate</td></tr>
+          <tr><td><code>DiffRatio</code></td><td>Distance ratio in this replicate (3 decimals)</td></tr>
+          <tr><td><code>HeterochronyTrend</code></td><td>Classification in this replicate</td></tr>
+          <tr><td><code>Replicate</code></td><td>Sequential valid replicate number (1 to n_iter)</td></tr>
+        </tbody>
+      </table>
+
+      <h3>8.3 PDF Plots</h3>
+      <p>Both PDFs show the same phylogeny with edges annotated:</p>
+      <ul>
+        <li><strong>Observed plot:</strong> edges labeled with TrendAbbrev and DiffRatio only.</li>
+        <li><strong>Bootstrap plot:</strong> edges labeled with TrendAbbrev and "DiffRatio → Recovery%".</li>
+      </ul>
+      <p>Color legend:
+        <span style="color:#1a5276;font-weight:700;">Blue = PERAMORPHOSIS (PERA)</span> —
+        <span style="color:#922b21;font-weight:700;">Red = PAEDOMORPHOSIS (PAEDO)</span> —
+        <span style="color:#888;font-weight:700;">Gray = NC</span>
+      </p>
+    </section>
+
+    <!-- ── 9. Rules ──────────────────────────────────────────────── -->
+    <section id="rules">
+      <h2>9. Important Rules</h2>
+
+      <h3 id="rule-bootstrap">9.1 Bootstrap Recovery Rule</h3>
+      <p>Recovery is always calculated relative to the <strong>observed trend</strong>.</p>
+      <ol>
+        <li>The observed trend (from the full dataset) is determined first.</li>
+        <li>Each valid bootstrap replicate is classified independently.</li>
+        <li>A replicate "matches" if it produces the same trend as observed.</li>
+        <li>Recovery% = (number of matching replicates) / valid_replicates × 100</li>
+      </ol>
+      <p>A branch classified as NC observed will have 100% recovery if all bootstrap
+      replicates also return NC. Recovery reflects <em>consistency</em> of the pattern,
+      not strength of the signal.</p>
+
+      <h3 id="rule-tree">9.2 Tree Integrity Rule</h3>
+      <p>The original <code>phylo_tree</code> (read from the Newick file) is used for
+      <strong>all calculations</strong>: ancestral reconstruction, edge iteration, and bootstrap.</p>
+      <p>Equal branch lengths are <em>only</em> used inside <code>plot_heterochrony_tree()</code>
+      for visual clarity, applied to a local copy. The original tree is never overwritten.</p>
+
+      <h3 id="rule-brlen">9.3 Tree Branch Length Rule</h3>
+      <p>If the Newick file does not contain branch lengths (<code>edge.length</code> is
+      <code>NULL</code>), the script automatically sets all branch lengths to 1 and issues:</p>
+      <div class="trouble-block warning">
+        <div class="trouble-label">Warning</div>
+        <div class="trouble-msg">"The tree does not contain branch lengths. All branch lengths have been set to 1. The analysis will proceed with an ultrametric tree (equal unit branch lengths)."</div>
+      </div>
+      <p>The analysis continues, but ancestral reconstruction with equal branch lengths may
+      not reflect true evolutionary distances. Providing a tree with meaningful branch lengths
+      (divergence times or molecular distances) is strongly recommended when available.</p>
+
+      <h3 id="rule-validity">9.4 Bootstrap Validity Rules</h3>
+      <p>A bootstrap replicate is <strong>discarded</strong> if any of the following occur:</p>
+      <ul>
+        <li>Any species has fewer than 2 specimens after resampling</li>
+        <li>Any species has no variation in DevtimeTwo after resampling</li>
+        <li>The Procrustes regression (<code>procD.lm</code>) fails</li>
+        <li>Origin shape prediction fails</li>
+        <li>Maximum shape estimation fails for any species</li>
+        <li>Ancestral PCA reconstruction fails or returns no ancestral states</li>
+        <li>The replicate does not produce a result for every branch</li>
+      </ul>
+      <p>Species with exactly 2 specimens are <strong>never resampled</strong> — all their
+      specimens are always included in every replicate.</p>
+      <p>The script attempts up to <code>max(1000, n_iter × 20)</code> total draws.
+      If fewer than <code>n_iter</code> valid replicates are obtained, a warning is issued
+      and recovery percentages use the actual count as denominator.</p>
+    </section>
+
+    <!-- ── 10. Customization ─────────────────────────────────────── -->
+    <section id="customization">
+      <h2>10. Customization</h2>
+
+      <h3 id="custom-ids">10.1 Modifying Species Name Extraction from TPS IDs</h3>
+      <p>By default the script uses the TPS ID directly as the species name
+      (<code>Species &lt;- ID</code>). To modify, edit the <code>Species</code> line inside
+      <code>extract_tps_input_data()</code>:</p>
+      <pre><code># Remove a trailing individual suffix:
+Species &lt;- sub("_IND_[0-9]+$", "", ID)
+
+# Take the first two underscore-delimited parts:
+Species &lt;- sapply(strsplit(ID, "_"), function(x) paste(x[1:2], collapse="_"))</code></pre>
+      <p>Modified species names must exactly match the tree tip labels.</p>
+
+      <h3>10.2 Changing the Developmental Indicator Keyword</h3>
+      <p>If your TPS file uses a keyword other than <code>AGE</code>:</p>
+      <pre><code>tps_devtime_keyword &lt;- "CS"   # or "DEVTIME", "AGE_DAYS", etc.</code></pre>
+      <p>Only used when <code>has_age_label = TRUE</code>.</p>
+
+      <h3>10.3 Using log(centroid size) as Developmental Indicator</h3>
+      <p>If your TPS has no AGE field, set:</p>
+      <pre><code>coords_aligned &lt;- FALSE
+has_age_label  &lt;- FALSE</code></pre>
+      <p>The script runs <code>gpagen()</code>, extracts centroid size from
+      <code>gpagen()$Csize</code>, and computes log(centroid size) as Devtime.
+      This mode is appropriate for growth series where body size is a reliable
+      proxy for developmental stage.</p>
+      <p><strong>Note:</strong> requires raw (unaligned) coordinates. If coordinates are
+      already aligned, size information has been removed and cannot be recovered.</p>
+
+      <h3>10.4 Adjusting the Classification Threshold</h3>
+      <table>
+        <thead><tr><th>Value</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>0.05</code></td><td>More sensitive — more branches classified as heterochronic</td></tr>
+          <tr><td><code>0.10</code></td><td>Default — balanced sensitivity / specificity</td></tr>
+          <tr><td><code>0.15</code></td><td>More conservative</td></tr>
+          <tr><td><code>0.20</code></td><td>Very conservative</td></tr>
+        </tbody>
+      </table>
+      <p>Run the script with multiple values to assess robustness of results.</p>
+
+      <h3>10.5 Adjusting Resampling Proportion</h3>
+      <table>
+        <thead><tr><th>Value</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>0.50</code></td><td>Retain 50% — more variation, more potential failures</td></tr>
+          <tr><td><code>0.66</code></td><td>Default</td></tr>
+          <tr><td><code>0.75</code></td><td>Retain 75% — closer to full dataset</td></tr>
+        </tbody>
+      </table>
+      <p>For datasets with very small species samples (3–5 specimens), higher values
+      (0.75–0.80) are recommended to avoid frequent replicate failures.</p>
+    </section>
+
+    <!-- ── 11. Troubleshooting ───────────────────────────────────── -->
+    <section id="troubleshooting">
+      <h2>11. Common Errors and Troubleshooting</h2>
+
+      <div class="trouble-block error">
+        <div class="trouble-label">Error</div>
+        <div class="trouble-msg">"coords_aligned = TRUE but has_age_label = FALSE"</div>
+        <div class="trouble-sub">Cause</div>
+        Pre-aligned coordinates but no developmental indicator — unsupported combination.
+        <div class="trouble-sub">Solution</div>
+        Either provide a TPS file with <code>AGE=</code> labels and set
+        <code>has_age_label = TRUE</code>, or set <code>coords_aligned = FALSE</code>
+        to use log(centroid size).
+      </div>
+
+      <div class="trouble-block error">
+        <div class="trouble-label">Error</div>
+        <div class="trouble-msg">"The number of AGE values does not match the number of specimens"</div>
+        <div class="trouble-sub">Cause</div>
+        Different number of <code>AGE=</code> lines and specimen blocks in the TPS file.
+        <div class="trouble-sub">Solution</div>
+        Check for specimens missing the <code>AGE=</code> field.
+        Ensure <code>tps_devtime_keyword</code> matches exactly the keyword in your TPS file.
+      </div>
+
+      <div class="trouble-block error">
+        <div class="trouble-label">Error</div>
+        <div class="trouble-msg">"The following tree tips are missing from the morphometric data"</div>
+        <div class="trouble-sub">Cause</div>
+        One or more tip labels in the tree are absent from the TPS species names.
+        <div class="trouble-sub">Solution</div>
+        Check for spelling differences, extra spaces, or case mismatches between
+        tree tip labels and TPS IDs (after any Species extraction logic).
+      </div>
+
+      <div class="trouble-block error">
+        <div class="trouble-label">Error</div>
+        <div class="trouble-msg">"Species X has fewer than 2 specimens"</div>
+        <div class="trouble-sub">Cause</div>
+        A species has only one specimen.
+        <div class="trouble-sub">Solution</div>
+        Remove that species from the TPS file and tree, or add specimens.
+      </div>
+
+      <div class="trouble-block error">
+        <div class="trouble-label">Error</div>
+        <div class="trouble-msg">"Species X has no variation in Devtime/AGE"</div>
+        <div class="trouble-sub">Cause</div>
+        All specimens of a species share the same AGE value (or the same centroid
+        size in log(CS) mode).
+        <div class="trouble-sub">Solution</div>
+        Remove that species or provide specimens with varying developmental times.
+      </div>
+
+      <div class="trouble-block error">
+        <div class="trouble-label">Error</div>
+        <div class="trouble-msg">"No valid bootstrap replicates were obtained"</div>
+        <div class="trouble-sub">Cause</div>
+        All bootstrap attempts fail validity checks — typically species too small to survive subsampling.
+        <div class="trouble-sub">Solution</div>
+        Increase <code>resampling_proportion</code> (e.g., 0.80 or 0.90).
+        Ensure all species have at least 3 specimens if resampling is expected.
+      </div>
+
+      <div class="trouble-block warning">
+        <div class="trouble-label">Warning</div>
+        <div class="trouble-msg">"The tree does not contain branch lengths. All branch lengths have been set to 1. The analysis will proceed with an ultrametric tree."</div>
+        <div class="trouble-sub">Cause</div>
+        The Newick file does not include branch lengths.
+        <div class="trouble-sub">Action</div>
+        Analysis continues with unit branch lengths. Provide a tree with meaningful
+        branch lengths (divergence times, molecular distances) for more reliable
+        ancestral reconstruction.
+      </div>
+
+      <div class="trouble-block warning">
+        <div class="trouble-label">Warning</div>
+        <div class="trouble-msg">"Only N valid bootstrap replicates were obtained out of the requested M"</div>
+        <div class="trouble-sub">Cause</div>
+        Some replicates failed validity checks.
+        <div class="trouble-sub">Action</div>
+        Recovery percentages remain valid (denominator = N).
+        Consider increasing <code>resampling_proportion</code> or <code>n_iter</code>.
+      </div>
+
+      <div class="trouble-block issue">
+        <div class="trouble-label">Issue</div>
+        <div class="trouble-msg">Bootstrap runs very slowly</div>
+        <div class="trouble-sub">Cause</div>
+        Large dataset or high replicate failure rate.
+        <div class="trouble-sub">Suggestion</div>
+        Reduce <code>n_iter</code> for exploratory runs (e.g., <code>n_iter &lt;- 10</code>).
+        Increase <code>resampling_proportion</code> to reduce failures.
+      </div>
+
+    </section>
+
+    <!-- ── 12. Glossary ──────────────────────────────────────────── -->
+    <section id="glossary">
+      <h2>12. Glossary</h2>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Ancestor-descendant pair</div>
+        <div class="glossary-def">A pair of nodes in the phylogenetic tree connected by a single branch. The ancestor is the internal node; the descendant is either a tip (species) or another internal node.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Bootstrap recovery</div>
+        <div class="glossary-def">The percentage of valid bootstrap replicates that reproduce the same heterochronic classification as the observed (full-dataset) analysis for a given branch.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Centroid size</div>
+        <div class="glossary-def">A measure of overall landmark configuration size, defined as the square root of the sum of squared distances from each landmark to the centroid of the configuration. Extracted by <code>gpagen()</code> for each specimen. Used as a proxy for developmental stage when <code>has_age_label = FALSE</code>.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">DevtimeTwo</div>
+        <div class="glossary-def">Internal variable name for the scaled developmental indicator used in regressions. Derived from raw Devtime values after per-species min-max normalization.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">diff_ratio</div>
+        <div class="glossary-def">The key classification metric: |dist_A − dist_B| / mean(dist_A, dist_B). Measures the relative difference between the two Procrustes distances used to classify heterochrony.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">dist_A</div>
+        <div class="glossary-def">Procrustes distance from the ancestor's maximum shape to the shared juvenile archetype (shape_0). Represents how far the ancestor developed beyond the juvenile stage.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">dist_B</div>
+        <div class="glossary-def">Procrustes distance from the shared juvenile archetype (shape_0) to the descendant's maximum shape. Represents how far the descendant developed beyond the juvenile stage.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Geomorph data frame (gdf)</div>
+        <div class="glossary-def">A specialized list structure from the geomorph package holding landmark coordinates together with associated variables (Species, Devtime, ID) for use in <code>procD.lm()</code>. The Devtime field is present only when <code>has_age_label = TRUE</code> or after <code>gpagen()</code> assigns it.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">gpagen()</div>
+        <div class="glossary-def">Generalized Procrustes Analysis function from the geomorph package. Aligns raw landmark configurations by removing differences in size, position, and orientation. Returns aligned coordinates and centroid size per specimen (<code>gpagen()$Csize</code>), used as the developmental indicator when <code>has_age_label = FALSE</code>.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Heterochrony</div>
+        <div class="glossary-def">Evolutionary change in the timing or rate of development. Here assessed as differences in how far a lineage's adult shape deviates from a shared juvenile reference.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">log(centroid size)</div>
+        <div class="glossary-def">The natural logarithm of centroid size, used as the developmental indicator when <code>coords_aligned = FALSE</code> and <code>has_age_label = FALSE</code>. Log-transformation stabilizes variance and linearizes the relationship between size and developmental stage.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">NC (No Change)</div>
+        <div class="glossary-def">Branch classification where the distance ratio falls below the threshold — the difference in developmental offset between ancestor and descendant is too small to be classified as heterochronic.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Paedomorphosis</div>
+        <div class="glossary-def">Heterochronic pattern where the descendant retains more juvenile-like features relative to its ancestor (dist_A &gt; dist_B).</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Peramorphosis</div>
+        <div class="glossary-def">Heterochronic pattern where the descendant shows a more developmentally advanced shape than its ancestor (dist_B &gt; dist_A).</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Procrustes distance</div>
+        <div class="glossary-def">A measure of shape difference between two landmark configurations after generalized Procrustes alignment (removing size, position, and orientation differences).</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">shape_0</div>
+        <div class="glossary-def">The shared juvenile archetype: the predicted landmark configuration at DevtimeTwo = 0, estimated from a Procrustes regression with species interaction across all specimens.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">TPS file</div>
+        <div class="glossary-def">Thin-Plate Spline file format — a standard plain-text format for storing landmark coordinate data in geometric morphometrics.</div>
+      </div>
+
+      <div class="glossary-item">
+        <div class="glossary-term">Ultrametric tree</div>
+        <div class="glossary-def">A phylogenetic tree where all root-to-tip path lengths are equal. When a tree without branch lengths is provided, the script assigns unit branch lengths to all edges and proceeds as if the tree were ultrametric.</div>
+      </div>
+
+    </section>
+
+    <footer>
+      Documentation for <strong>phylo.peram.test.R</strong> —
+      González-Piñeres &amp; Catalano (2026, in prep.)
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>

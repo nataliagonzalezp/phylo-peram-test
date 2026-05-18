@@ -1,0 +1,1030 @@
+================================================================================
+  DOCUMENTATION
+  Script: phylo.peram.test.R
+  Phylogenetic Peramorphosis Test with Bootstrap Recovery
+================================================================================
+
+Authors:    Natalia González-Piñeres
+            Becaria doctoral - Unidad Ejecutora Lillo (UEL-FML-CONICET)
+
+				Santiago A. Catalano
+			Investigador Independiente CONICET
+			Unidad Ejecutora Lillo (UEL-FML-CONICET)
+			FCNeIML-UNT
+
+Version:    v1.0
+Developed:  R version 4.5.3 (2026-03-11) "Reassured Reassurer"
+
+Citation:   González-Piñeres & Catalano (2026, in prep.)
+            Piras et al. (2011)
+            Adams et al. (geomorph package references)
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+  1. Purpose and overview
+  2. Required R packages
+  3. Input files
+  4. User-defined parameters
+  5. How to run the script
+  6. Analytical workflow (step by step)
+  7. Internal functions reference
+  8. Output files
+  9. Important rules
+ 10. Customization
+ 11. Common errors and troubleshooting
+ 12. Glossary
+
+================================================================================
+1. PURPOSE AND OVERVIEW
+================================================================================
+
+This script implements a phylogenetic extension of the peramorphosis test (Piras et al. 2011)
+to infer heterochronic events across all ancestor-descendant pairs in a
+phylogenetic tree.
+
+Heterochrony refers to evolutionary changes in the timing or rate of
+developmental events. This script classifies each phylogenetic branch as:
+
+  - PERAMORPHOSIS : the descendant has a more developmentally advanced shape
+                    than its ancestor (overdevelopment).
+  - PAEDOMORPHOSIS: the descendant retains a more juvenile-like shape than
+                    the ancestor (underdevelopment / retention of juvenile
+                    features).
+  - NC            : No Change - the difference between distances is below
+                    the specified threshold; the branch is not classified as
+                    heterochronic.
+
+The method uses geometric morphometric data (landmark coordinates) and
+a developmental progress indicator extracted from a TPS file, combined with
+a phylogenetic tree. For each species, the expected shape at maximum
+developmental time is estimated via Procrustes regression. Ancestral
+shapes are reconstructed using Maximum Likelihood on phylogenetic PCA
+scores (via geomorph's gm.prcomp). Bootstrap resampling is then used
+to assess the robustness (recovery frequency) of each inferred pattern.
+
+The script accepts both pre-aligned and raw (unaligned)
+landmark coordinates, and can derive the developmental indicator from
+log(centroid size) when no AGE field is available in the TPS file.
+It also handles trees without branch lengths by assigning unit lengths
+and issuing a warning.
+
+The script can process either raw (unaligned) or pre-aligned landmark
+coordinates. The input mode is not inferred automatically from the TPS file:
+the user must explicitly define the corresponding option in the script. These
+options are described in the "INPUT MODE FLAGS" section of this documentation.
+
+The rule used by the script to define the developmental progress indicator is
+as follows:
+
+ 1. Raw / unaligned TPS file without an AGE field:
+    The script performs landmark alignment, calculates centroid size from the
+    original unaligned coordinates, applies a logarithmic transformation, and
+    uses log(centroid size) as the developmental progress indicator.
+
+2. Pre-aligned TPS file with an AGE field:
+    The script reads the aligned coordinates directly and uses the AGE values
+    provided in the TPS file as the developmental progress indicator.
+
+ 3. Pre-aligned TPS file without an AGE field:
+    The script reads the aligned coordinates, but it cannot derive centroid
+    size from them because size information has already been removed by
+    alignment. In this case, the script issues a warning asking the user to
+    provide an external developmental progress indicator, such as age, stage,
+    or another suitable proxy.
+
+ By default, the script assumes that the TPS file contains raw / unaligned
+ coordinates. Therefore, if no AGE field is available, log(centroid size) is
+ calculated from the raw coordinates and used as the developmental progress
+ indicator.
+
+================================================================================
+2. REQUIRED R PACKAGES
+================================================================================
+
+The following packages must be installed before running the script.
+Install missing packages with: install.packages("package_name")
+
+  Package       Purpose
+  ------------- ---------------------------------------------------------------
+  abind         Array binding (combining bootstrap coordinate arrays)
+  ape           Reading and handling phylogenetic trees (Newick format)
+  borealis      Geometric morphometrics utilities
+  devtools      Package development tools (may be needed for some installs)
+  dplyr         Data manipulation (group_by, summarise, bind_rows, select)
+  geiger        Phylogenetic comparative methods
+  geomorph      Core geometric morphometrics (readland.tps, gpagen, procD.lm,
+                gm.prcomp, geomorph.data.frame)
+  ggplot2       Plotting (loaded as part of the ecosystem)
+  ggpubr        Publication-ready ggplot2 extensions
+  ggthemes      Additional themes for ggplot2
+  gridExtra     Arranging multiple plots
+  Morpho        Morphometric shape analysis tools
+  phytools      Extended phylogenetic tools (ancestral state reconstruction)
+  readr         Reading/writing CSV files (write_csv)
+  tidyr         Data reshaping
+  tidyverse     Collection of data science packages (loads dplyr, ggplot2, etc.)
+  viridis       Colorblind-friendly color palettes
+
+Note: if tidyverse is already loaded, many of the individual packages
+(dplyr, ggplot2, readr, tidyr) are already available.
+
+================================================================================
+3. INPUT FILES
+================================================================================
+
+The script requires two input files placed in the same working
+directory as the script, or with full paths specified: a tps file 
+with the coordinates and a reference tree.
+
+--------------------------------------------------------------------------------
+3.1  TPS FILE  (.tps)
+--------------------------------------------------------------------------------
+
+A standard TPS (thin-plate spline) file containing landmark coordinates and
+specimen identifiers. Depending on the flags set in Section 4.3, the file
+may or may not contain an AGE= field, and coordinates may or may not be
+pre-aligned.
+
+Example TPS block structure (with AGE label):
+
+    LM=10
+    0.123 0.456
+    0.789 0.012
+    ... (one row per landmark)
+    ID=SpeciesName
+    AGE=0.75
+
+Example TPS block structure (without AGE label, raw coordinates):
+
+    LM=10
+    0.123 0.456
+    0.789 0.012
+    ... (one row per landmark)
+    ID=SpeciesName
+
+Requirements (all cases):
+  - Specimen IDs (ID=) must match species names in the phylogenetic tree,
+    OR must be modifiable to species names (see Section 10.1, Customization).
+  - All specimens of the same species must share the same species label.
+  - Each species must have at least 2 specimens.
+
+Additional requirements when has_age_label = TRUE:
+  - Every specimen must have a numeric value for the developmental indicator
+    (the field specified by tps_devtime_keyword, default: AGE).
+  - The number of AGE= lines must equal the number of specimens.
+  - Each species must have variation in the developmental indicator
+    (not all specimens of a species at the same AGE value).
+
+Additional requirements when coords_aligned = FALSE:
+  - Coordinates must be raw (unaligned) landmark data in the original
+    coordinate space. gpagen() will perform Generalized Procrustes Analysis.
+
+--------------------------------------------------------------------------------
+3.2  TREE FILE  (.tre)
+--------------------------------------------------------------------------------
+
+A phylogenetic tree in Newick format.
+
+Requirements:
+  - All tip labels must exactly match species names in the TPS file
+    (after any ID parsing; see Section 10.1).
+  - Node labels are automatically removed by the script (they are not used).
+  - Branch lengths are used for ancestral state reconstruction when present.
+    If the tree has no branch lengths, all are set to 1 and a warning
+    is issued (see Section 9.3).
+  - For plotting, equal branch lengths are applied to a local copy only;
+    the calculation tree is never modified.
+  - The tree must be fully resolved (binary) for ancestral reconstruction.
+
+================================================================================
+4. USER-DEFINED PARAMETERS
+================================================================================
+
+These are the only values a user needs to modify before running the script.
+They are located at the top of the script under the section
+"USER-DEFINED PARAMETERS".
+
+--------------------------------------------------------------------------------
+4.1  INPUT FILE NAMES
+--------------------------------------------------------------------------------
+
+  TPS_file <- "yourfile.tps"
+    The filename (or full path) of the TPS input file.
+    Change this to match your actual TPS file name.
+
+  tree_file <- "yourtree.tre"
+    The filename (or full path) of the Newick tree file.
+    Change this to match your actual tree file name.
+
+--------------------------------------------------------------------------------
+4.2  TPS FIELD IDENTIFIERS
+--------------------------------------------------------------------------------
+
+  tps_specID <- "ID"
+    The keyword used in the TPS file to identify specimens.
+    Default: "ID"  (matches lines of the form   ID=SpeciesName)
+    Change only if your TPS file uses a different keyword (e.g., "SPECIMEN").
+
+  tps_devtime_keyword <- "AGE"
+    The keyword used in the TPS file for the developmental/age indicator.
+    Default: "AGE"  (matches lines of the form   AGE=0.75)
+    Change this if your TPS file stores this information under a different
+    keyword (e.g., "CS", "DEVTIME", "SIZE").
+    Only used when has_age_label = TRUE.
+
+--------------------------------------------------------------------------------
+4.3  INPUT MODE FLAGS
+--------------------------------------------------------------------------------
+
+  coords_aligned <- TRUE
+    Set to TRUE if the TPS file contains Procrustes-aligned (superimposed)
+    landmark coordinates.
+    Set to FALSE if the TPS file contains raw (unaligned) coordinates.
+    When FALSE, gpagen() is called automatically to perform Generalized
+    Procrustes Analysis before the analysis begins.
+    Default: TRUE
+
+  has_age_label <- TRUE
+    Set to TRUE if the TPS file contains an AGE= field (or the equivalent
+    keyword defined in tps_devtime_keyword) for each specimen.
+    Set to FALSE if no such field is present. In this case, coords_aligned
+    must also be FALSE, and log(centroid size) extracted from gpagen()
+    will be used as the developmental indicator.
+    Default: TRUE
+
+  Valid flag combinations and their behavior:
+
+    coords_aligned = TRUE,  has_age_label = TRUE
+      Standard workflow. Pre-aligned coordinates and AGE labels are used
+      directly. No alignment is performed.
+
+    coords_aligned = FALSE, has_age_label = FALSE
+      Raw coordinates, no AGE field. gpagen() aligns the coordinates and
+      extracts centroid sizes. log(centroid size) is assigned as Devtime.
+
+    coords_aligned = FALSE, has_age_label = TRUE
+      Raw coordinates with AGE labels provided. gpagen() aligns the
+      coordinates. The provided AGE values are used as Devtime.
+
+    coords_aligned = TRUE,  has_age_label = FALSE
+      Not supported. The script stops with an error asking the user to
+      provide AGE= labels or to set coords_aligned = FALSE.
+
+--------------------------------------------------------------------------------
+4.4  ANALYTICAL PARAMETERS
+--------------------------------------------------------------------------------
+
+  resampling_proportion <- 0.66
+    Proportion of specimens retained per species in each bootstrap replicate.
+    Default: 0.66  (66% of specimens kept per species per replicate)
+    Range: a value between 0 and 1 (exclusive).
+    Note: species with exactly 2 specimens are always kept complete
+    (they are never subsampled), regardless of this value.
+
+  diff_ratio_threshold <- 0.10
+    Threshold for the distance-ratio used to classify branches as
+    heterochronic vs. No Change (NC).
+    Default: 0.10  (10% relative difference in Procrustes distances)
+    How it works:
+      diff_ratio = |dist_A - dist_B| / mean(dist_A, dist_B)
+      If diff_ratio < threshold  →  NC
+      If diff_ratio >= threshold and dist_A > dist_B  →  PAEDOMORPHOSIS
+      If diff_ratio >= threshold and dist_A < dist_B  →  PERAMORPHOSIS
+    Increasing this value makes the test more conservative (fewer
+    heterochronic events detected). Decreasing it makes it more sensitive, 
+    but may increase false positives.
+
+  n_iter <- 100
+    Target number of VALID bootstrap replicates.
+    Default: 100
+    The script will attempt up to max(1000, n_iter * 20) total attempts
+    to obtain this many valid replicates. A replicate is considered invalid
+    if any species loses its developmental variation or if the model fails.
+
+  set.seed(5422)
+    Random seed for reproducibility.
+    Change this value to run the analysis with a different random stream,
+    or remove the line to use a non-reproducible random stream.
+
+================================================================================
+5. HOW TO RUN THE SCRIPT
+================================================================================
+
+Step 1 - Install packages (first time only)
+  Run the following in R if any packages are missing:
+    install.packages(c("abind","ape","borealis","devtools","dplyr","geiger",
+                       "geomorph","ggplot2","ggpubr","ggthemes","gridExtra",
+                       "Morpho","phytools","readr","tidyr","tidyverse","viridis"))
+
+Step 2 - Set the working directory
+  In R or RStudio, set the working directory to the folder containing
+  the script and both input files:
+    setwd("path/to/your/folder")
+  Or open the script in RStudio and use Session > Set Working Directory >
+  To Source File Location.
+
+Step 3 - Edit user-defined parameters
+  Open phylo.peram.test.R in a text editor or RStudio.
+  Edit the parameters described in Section 4 to match your data.
+  Pay special attention to coords_aligned and has_age_label (Section 4.3),
+  which control how coordinates and the developmental indicator are handled.
+
+Step 4 - Run the script
+  In RStudio: click "Source" to run the full script.
+  In the R console: source("phylo.peram.test.R")
+
+Step 5 - Check the console output
+  The script prints informational messages about the input mode selected,
+  progress messages during the bootstrap loop:
+    Bootstrap attempt: N
+    -> Valid replicate saved! Total: M
+  At the end it prints the final results table and a summary of output files.
+
+Step 6 - Inspect output files
+  All output files are written to the working directory.
+  See Section 8 for a description of each file.
+
+================================================================================
+6. ANALYTICAL WORKFLOW (STEP BY STEP)
+================================================================================
+
+The script executes the following stages in order:
+
+  Stage 1 - CLEAN ENVIRONMENT
+    Removes all objects from the R workspace (rm(list = ls())) to ensure
+    a clean start.
+
+  Stage 2 - LOAD LIBRARIES
+    Loads all required packages.
+
+  Stage 3 - USER-DEFINED PARAMETERS
+    Sets file names, input mode flags (coords_aligned, has_age_label),
+    analytical parameters, and auto-generates output file names based on
+    the chosen parameter values.
+
+  Stage 4 - EXTRACT DATA FROM TPS FILE
+    Reads the TPS file using geomorph::readland.tps() for landmark
+    coordinates. If has_age_label = TRUE, also parses the developmental
+    indicator (AGE= lines) directly from the raw file. Constructs an
+    in-memory geomorph.data.frame (gdf) with fields:
+      Data    = 3D array of landmark coordinates [landmarks x dims x specimens]
+      Devtime = numeric vector of developmental indicator values
+                (only present when has_age_label = TRUE)
+      Species = species labels (by default, directly from the TPS ID)
+      ID      = specimen identifiers
+
+  Stage 5 - ALIGN COORDINATES AND ASSIGN DEVELOPMENTAL INDICATOR
+    Behavior depends on the coords_aligned and has_age_label flags:
+
+    coords_aligned = TRUE,  has_age_label = TRUE
+      No action. Coordinates and AGE labels are used as provided.
+
+    coords_aligned = FALSE, has_age_label = FALSE
+      gpagen() is called on the raw coordinates. Aligned coordinates
+      replace gdf$Data. log(centroid size) from gpagen()$Csize is
+      computed and assigned as gdf$Devtime for all specimens.
+
+    coords_aligned = FALSE, has_age_label = TRUE
+      gpagen() is called on the raw coordinates. Aligned coordinates
+      replace gdf$Data. The existing AGE-derived Devtime is kept.
+
+    coords_aligned = TRUE,  has_age_label = FALSE
+      The script stops with an informative error message.
+
+  Stage 6 - LOAD TREE
+    Reads the Newick tree file using ape::read.tree(). Node labels are
+    removed. If the tree has no branch lengths (edge.length is NULL),
+    all branch lengths are set to 1 and a warning is issued. The
+    resulting phylo_tree is used unchanged for all calculations.
+
+  Stage 7 - LOAD AND PREPARE DATA
+    Extracts coordinate array, species labels, and specimen names from the
+    gdf. Specimen names are reformatted as SpeciesName_IND_01, _IND_02, etc.
+
+  Stage 8 - STANDARDIZE DEVELOPMENTAL INDICATOR
+    Scales the developmental indicator (Devtime) to [0, 1] within each
+    species independently using min-max normalization:
+      scaled = (x - min) / (max - min)
+    A small value (1e-7) replaces any zero after scaling to avoid
+    regression issues at the exact origin.
+
+  Stage 9 - SORT DATA BY SPECIES
+    Reorders all data arrays so that specimens are grouped by species.
+    This ensures consistent indexing throughout the analysis.
+
+  Stage 10 - CHECK TREE AND DATA MATCH
+    Verifies that all tree tip labels are present in the morphometric data.
+    Species present in the data but absent from the tree generate a warning
+    (they are excluded from phylogenetic reconstruction but do not stop
+    execution).
+
+  Stage 11 - ESTIMATE SHARED ORIGIN SHAPE (shape_0)
+    Fits a Procrustes regression of shape on developmental time with
+    species interaction:
+      Data ~ Devtime * SpeciesData
+    Predicts the shared juvenile archetype (shape_0) at Devtime = 0,
+    representing the common ancestral juvenile morphology.
+
+  Stage 12 - ESTIMATE MAXIMUM SHAPES (predicted_shapesMAX)
+    For each species, fits an independent Procrustes regression:
+      coords ~ DevtimeTwo
+    Predicts the shape at the maximum observed developmental time for
+    that species. This gives the expected adult or maximum-development
+    shape per species.
+
+  Stage 13 - RECONSTRUCT ANCESTRAL SHAPES (AncestralCoordinatesMAX)
+    Projects the maximum shapes onto a phylogenetic PCA (gm.prcomp with
+    phy = phylo_tree), which simultaneously performs ancestral state
+    reconstruction via Maximum Likelihood on the PC scores. Ancestral
+    node shapes are back-projected to landmark space.
+
+  Stage 14 - INFER OBSERVED HETEROCHRONIC TRENDS
+    For each branch in the tree (each row of phylo_tree$edge):
+      - Retrieves the ancestor shape (from AncestralCoordinatesMAX)
+      - Retrieves the descendant shape (tip species or internal node)
+      - Computes:
+          dist_A = Procrustes distance from ancestor to shared origin (shape_0)
+          dist_B = Procrustes distance from shared origin to descendant max shape
+      - Classifies the branch using classify_heterochrony()
+    Stores results in DistanceResults.
+
+  Stage 15 - OBSERVED TREE PLOT
+    Produces a PDF phylogeny with branches labelled by heterochronic
+    category (PERA / PAEDO / NC) and color-coded (blue / red / gray).
+    Uses equal branch lengths for visual clarity only.
+
+  Stage 16 - BOOTSTRAP RESAMPLING
+    Repeats the analysis n_iter times with random subsamples of specimens
+    per species (retaining resampling_proportion of each species per
+    replicate, with minimum 2 specimens). Each valid replicate produces a
+    full set of branch classifications. A replicate is discarded if:
+      - Any species has < 2 specimens after sampling
+      - Any species loses developmental variation
+      - The Procrustes regression fails
+      - Ancestral reconstruction fails
+      - The replicate does not cover all branches
+
+  Stage 17 - AGGREGATE BOOTSTRAP RESULTS
+    Counts how many valid bootstrap replicates matched the observed trend
+    for each branch. Computes recovery percentage:
+      Recovery% = (matches / valid_replicates) * 100
+    Writes raw bootstrap trends and final results with recovery to CSV.
+
+  Stage 18 - BOOTSTRAP TREE PLOT
+    Produces a second PDF phylogeny labelled with both the heterochronic
+    category and the bootstrap recovery percentage.
+
+================================================================================
+7. INTERNAL FUNCTIONS REFERENCE
+================================================================================
+
+The script defines six internal functions:
+
+--------------------------------------------------------------------------------
+classify_heterochrony(dist_A, dist_B, diff_ratio_threshold)
+--------------------------------------------------------------------------------
+  Purpose:
+    Classifies a single ancestor-descendant pair as PERAMORPHOSIS,
+    PAEDOMORPHOSIS, or NC based on two Procrustes distances.
+
+  Arguments:
+    dist_A              Procrustes distance from ancestor shape to shared
+                        juvenile archetype (shape_0).
+    dist_B              Procrustes distance from shared juvenile archetype
+                        (shape_0) to descendant maximum shape.
+    diff_ratio_threshold  Numeric threshold (same as the global parameter).
+
+  Returns:
+    A list with two elements:
+      $trend      Character: "PERAMORPHOSIS", "PAEDOMORPHOSIS", or "NC"
+      $diff_ratio Numeric: the computed ratio |dist_A - dist_B| / mean(dist_A, dist_B)
+
+  Logic:
+    diff_ratio = |dist_A - dist_B| / mean(dist_A, dist_B)
+    If diff_ratio < threshold  →  "NC"
+    If dist_A > dist_B         →  "PAEDOMORPHOSIS"
+    If dist_A < dist_B         →  "PERAMORPHOSIS"
+
+--------------------------------------------------------------------------------
+estimate_max_shapes(coords, devtimes, species, max_devtimes)
+--------------------------------------------------------------------------------
+  Purpose:
+    Estimates the predicted landmark shape at maximum developmental time
+    for each species, using species-specific Procrustes regressions.
+
+  Arguments:
+    coords        3D landmark array [landmarks x dims x specimens]
+    devtimes      Numeric vector of (scaled) developmental indicator values
+    species       Factor of species labels, one per specimen
+    max_devtimes  Data frame with columns $Species and $MaxDevtime,
+                  giving the maximum developmental value per species
+
+  Returns:
+    A named 3D array [landmarks x dims x n_species] with one predicted
+    shape per species (labelled by species name).
+
+  Notes:
+    - Requires at least 2 specimens per species.
+    - Requires variation in devtimes within each species.
+    - Uses geomorph::procD.lm() and predict() internally.
+
+--------------------------------------------------------------------------------
+reconstruct_ancestral_shapes(predicted_shapes, phylo_tree)
+--------------------------------------------------------------------------------
+  Purpose:
+    Reconstructs ancestral landmark configurations at internal tree nodes
+    using phylogenetic PCA with Maximum Likelihood ancestral state estimation.
+
+  Arguments:
+    predicted_shapes  Named 3D array of tip (species) max shapes,
+                      as produced by estimate_max_shapes()
+    phylo_tree        Phylogenetic tree (ape "phylo" object)
+
+  Returns:
+    A named 3D array [landmarks x dims x n_nodes] with one reconstructed
+    shape per internal node (labelled by node number as character).
+
+  Notes:
+    - Uses geomorph::gm.prcomp(phy = phylo_tree) for simultaneous PCA
+      and ancestral reconstruction.
+    - Ancestral PC scores are back-transformed to landmark coordinates.
+
+--------------------------------------------------------------------------------
+infer_edge_trends(shape_0, predicted_shapesMAX, AncestralCoordinatesMAX,
+                  phylo_tree, diff_ratio_threshold)
+--------------------------------------------------------------------------------
+  Purpose:
+    Iterates over all edges of the phylogenetic tree and classifies each
+    ancestor-descendant pair as PERAMORPHOSIS, PAEDOMORPHOSIS, or NC.
+
+  Arguments:
+    shape_0                 Matrix [landmarks x dims]: the shared juvenile
+                            origin shape (predicted at Devtime = 0).
+    predicted_shapesMAX     Named 3D array of tip maximum shapes.
+    AncestralCoordinatesMAX Named 3D array of reconstructed ancestral shapes.
+    phylo_tree              Phylogenetic tree (ape "phylo" object).
+    diff_ratio_threshold    Numeric threshold.
+
+  Returns:
+    A data frame with one row per tree edge containing:
+      Ancestor          Node label of the ancestor
+      Descendant        Label of the descendant (tip name or node number)
+      DistanceA         Procrustes distance: ancestor shape to shape_0
+      DistanceB         Procrustes distance: shape_0 to descendant shape
+      DiffRatio         Computed distance ratio
+      HeterochronyTrend Classification ("PERAMORPHOSIS", "PAEDOMORPHOSIS", "NC")
+
+--------------------------------------------------------------------------------
+draw_species_sample(inds, devtimes, resampling_proportion, min_keep = 2)
+--------------------------------------------------------------------------------
+  Purpose:
+    Randomly selects a subset of specimen indices for one species during
+    bootstrap resampling.
+
+  Arguments:
+    inds                  Integer vector of specimen indices for one species.
+    devtimes              Developmental time values (passed for context;
+                          selection is currently index-based).
+    resampling_proportion Proportion of specimens to retain (0-1).
+    min_keep              Minimum number of specimens to keep (default: 2).
+
+  Returns:
+    Integer vector of selected positions within inds (not global indices).
+
+  Notes:
+    - If length(inds) == 2, all specimens are always returned (no resampling).
+    - The effective keep count is max(min_keep, round(n * resampling_proportion)).
+
+--------------------------------------------------------------------------------
+prepare_plot_variables(results, phylo_tree)
+--------------------------------------------------------------------------------
+  Purpose:
+    Adds plotting-specific columns (node numbers, abbreviated trend labels,
+    and colors) to the results data frame before tree visualization.
+
+  Arguments:
+    results     Data frame of heterochronic results (from infer_edge_trends).
+    phylo_tree  Phylogenetic tree used for plotting.
+
+  Returns:
+    The same data frame with additional columns:
+      DescNum     Integer node number of the descendant
+      AncNum      Integer node number of the ancestor
+      TrendAbbrev "PERA", "PAEDO", or "NC"
+      TrendColor  "blue", "red", or "gray70"
+
+--------------------------------------------------------------------------------
+plot_heterochrony_tree(phylo_tree, results, pdf_name, plot_title,
+                       show_recovery = FALSE)
+--------------------------------------------------------------------------------
+  Purpose:
+    Produces a PDF file with the phylogenetic tree annotated by heterochronic
+    classification per branch.
+
+  Arguments:
+    phylo_tree     Phylogenetic tree (original, with true branch lengths).
+    results        Data frame of results including TrendAbbrev and TrendColor.
+    pdf_name       Character: output PDF filename.
+    plot_title     Character: title displayed on the plot.
+    show_recovery  Logical: if TRUE, also displays bootstrap recovery % on
+                   each branch (requires column $RecoveryPercentage in results).
+
+  Output:
+    A 16 x 10 inch PDF with:
+      - Tree topology (equal branch lengths for visual clarity)
+      - Colored edge labels: PERA (blue), PAEDO (red), NC (gray)
+      - Secondary labels: DiffRatio values, and Recovery% if show_recovery=TRUE
+      - Node circles labeled with node numbers
+      - Legend in the top-right corner
+
+  Important:
+    Equal branch lengths are applied to a LOCAL copy of the tree for
+    plotting only. The original phylo_tree used in calculations is never
+    modified.
+
+================================================================================
+8. OUTPUT FILES
+================================================================================
+
+All output files are written to the working directory. File names are
+automatically generated based on parameter values.
+
+With default parameters (resampling_proportion=0.66, diff_ratio_threshold=0.10):
+
+  File                                                     Description
+  -------------------------------------------------------  ------------------
+  HeterochronicChanges_10_DThreshold.pdf                  Observed tree plot
+                                                           (no bootstrap info)
+
+  HeterochronicChanges_Bootstrap66_10_DThreshold.pdf      Bootstrap tree plot
+                                                           (with recovery %)
+
+  66Keep10Threshold_TotalSample_Heterochrony_              Main results table
+    Results_WithRecovery.csv
+
+  66Keep10Threshold_RawBootstrapTrends.csv                 All bootstrap
+                                                           replicate results
+
+--------------------------------------------------------------------------------
+8.1  Main results CSV
+--------------------------------------------------------------------------------
+Columns:
+  Ancestor          Node number of the ancestor (character)
+  Descendant        Tip name or node number of the descendant
+  DistanceA         Procrustes distance: ancestor to shared juvenile archetype
+  DistanceB         Procrustes distance: shared juvenile archetype to descendant
+  DiffRatio         |DistanceA - DistanceB| / mean(DistanceA, DistanceB)
+                    (rounded to 3 decimal places)
+  HeterochronyTrend "PERAMORPHOSIS", "PAEDOMORPHOSIS", or "NC"
+  DescNum           Integer node number for the descendant (for internal use)
+  AncNum            Integer node number for the ancestor (for internal use)
+  TrendAbbrev       "PERA", "PAEDO", or "NC" (abbreviated label)
+  TrendColor        Color used in the plot ("blue", "red", or "gray70")
+  ObservedTrend     Same as HeterochronyTrend (preserved for bootstrap comparison)
+  RecoveryPercentage  Percentage of valid bootstrap replicates that matched
+                    the observed trend for this branch
+
+--------------------------------------------------------------------------------
+8.2  Raw bootstrap trends CSV
+--------------------------------------------------------------------------------
+Columns:
+  BootstrapListID   Internal list index of the bootstrap replicate
+  Ancestor          Node number of the ancestor
+  Descendant        Tip name or node number of the descendant
+  DistanceA         Procrustes distance in this replicate
+  DistanceB         Procrustes distance in this replicate
+  DiffRatio         Distance ratio in this replicate (rounded to 3 decimals)
+  HeterochronyTrend Classification in this replicate
+  Replicate         Sequential valid replicate number (1 to n_iter)
+
+--------------------------------------------------------------------------------
+8.3  PDF plots
+--------------------------------------------------------------------------------
+Both PDFs show the same phylogeny with edges annotated.
+  - Observed plot:   edges labeled with TrendAbbrev and DiffRatio only.
+  - Bootstrap plot:  edges labeled with TrendAbbrev and "DiffRatio -> Recovery%".
+  Color legend:
+    Blue  = PERAMORPHOSIS (PERA)
+    Red   = PAEDOMORPHOSIS (PAEDO)
+    Gray  = No Change (NC)
+
+================================================================================
+9. IMPORTANT RULES
+================================================================================
+
+--------------------------------------------------------------------------------
+9.1  Bootstrap recovery rule
+--------------------------------------------------------------------------------
+Recovery is always calculated relative to the OBSERVED trend.
+
+  For each branch:
+    1. The observed trend (from the full dataset) is determined first.
+    2. Each valid bootstrap replicate is classified independently.
+    3. A replicate "matches" if it produces the same trend as observed.
+    4. Recovery% = (number of matching replicates) / (valid_replicates) * 100
+
+  Consequence: A branch classified as NC observed will have 100% recovery if
+  all bootstrap replicates also return NC, even if the distances fluctuate.
+  Recovery reflects consistency of the pattern, not strength of the signal.
+
+--------------------------------------------------------------------------------
+9.2  Tree integrity rule
+--------------------------------------------------------------------------------
+The original phylo_tree (read from the Newick file) is used for ALL
+calculations: ancestral reconstruction, edge iteration, and bootstrap.
+
+Equal branch lengths are ONLY used inside plot_heterochrony_tree() for
+visual clarity. They are applied to a local copy of the tree and do NOT
+affect any calculations. The original phylo_tree is never overwritten.
+
+--------------------------------------------------------------------------------
+9.3  Tree branch length rule
+--------------------------------------------------------------------------------
+If the Newick tree file does not contain branch lengths (edge.length is NULL
+after reading with ape::read.tree()), the script automatically sets all
+branch lengths to 1 and issues a warning:
+
+  "The tree does not contain branch lengths.
+   All branch lengths have been set to 1.
+   The analysis will proceed with an ultrametric tree (equal unit branch lengths)."
+
+This allows the analysis to continue, but users should be aware that
+ancestral state reconstruction with equal branch lengths may not reflect
+true evolutionary distances. Providing a tree with meaningful branch lengths
+(e.g., divergence times or molecular distances) is strongly recommended
+when available.
+
+--------------------------------------------------------------------------------
+9.4  Bootstrap validity rules
+--------------------------------------------------------------------------------
+A bootstrap replicate is DISCARDED (not counted) if any of the following occur:
+
+  - Any species has fewer than 2 specimens after resampling
+  - Any species has no variation in DevtimeTwo after resampling
+  - The Procrustes regression (procD.lm) fails for any reason
+  - Origin shape prediction fails
+  - Maximum shape estimation fails for any species
+  - Ancestral PCA reconstruction fails or returns no ancestral states
+  - The replicate does not produce a result for every branch in the tree
+
+  Species with exactly 2 specimens are NEVER resampled - all their specimens
+  are always included in every bootstrap replicate.
+
+  The script attempts up to max(1000, n_iter * 20) bootstrap draws.
+  If fewer than n_iter valid replicates are obtained, a warning is issued
+  and recovery percentages are calculated using the actual number of valid
+  replicates as the denominator.
+
+================================================================================
+10. CUSTOMIZATION
+================================================================================
+
+--------------------------------------------------------------------------------
+10.1  Modifying how species names are extracted from TPS IDs
+--------------------------------------------------------------------------------
+By default, the script uses the TPS ID directly as the species name:
+  Species <- ID
+
+If your TPS IDs include specimen-level suffixes (e.g., "SpeciesA_IND_001"),
+modify the Species line inside the extract_tps_input_data() function:
+
+  Example - remove a trailing individual suffix:
+    Species <- sub("_IND_[0-9]+$", "", ID)
+
+  Example - take only the first two parts of an underscore-delimited ID:
+    Species <- sapply(strsplit(ID, "_"), function(x) paste(x[1:2], collapse="_"))
+
+The modified species names must exactly match the tip labels in the tree file.
+
+--------------------------------------------------------------------------------
+10.2  Changing the developmental indicator keyword
+--------------------------------------------------------------------------------
+If your TPS file stores the developmental indicator under a different keyword
+(e.g., CS=, DEVTIME=, AGE_DAYS=), change:
+  tps_devtime_keyword <- "AGE"
+to:
+  tps_devtime_keyword <- "CS"   (or whichever keyword appears in your TPS file)
+
+This parameter is only used when has_age_label = TRUE.
+
+--------------------------------------------------------------------------------
+10.3  Using log(centroid size) as developmental indicator
+--------------------------------------------------------------------------------
+If your TPS file does not contain an AGE= field, set:
+  coords_aligned <- FALSE
+  has_age_label  <- FALSE
+
+The script will run gpagen() on the raw coordinates, extract centroid size
+per specimen from gpagen()$Csize, and compute log(centroid size) as the
+developmental indicator (Devtime) for all specimens.
+
+This mode is appropriate when the dataset represents a growth series or
+ontogenetic trajectory where body size (captured by centroid size) is a
+reliable proxy for developmental stage.
+
+Note: this requires that coordinates in the TPS are raw (not yet aligned).
+If your coordinates are already aligned, centroid size information has been
+standardized away and cannot be recovered.
+
+--------------------------------------------------------------------------------
+10.4  Adjusting the classification threshold
+--------------------------------------------------------------------------------
+The diff_ratio_threshold controls sensitivity. Suggested exploration range:
+  0.05  (more sensitive, more branches classified as heterochronic)
+  0.10  (default, balanced)
+  0.15  (more conservative)
+  0.20  (very conservative)
+
+Run the script with multiple threshold values to assess robustness of results.
+
+--------------------------------------------------------------------------------
+10.5  Adjusting resampling proportion for bootstrap
+--------------------------------------------------------------------------------
+  0.50  - retain 50% of specimens (more variation, more failures possible)
+  0.66  - retain 66% (default)
+  0.75  - retain 75% (closer to full dataset, less variation in resampling)
+
+For datasets with very small species samples (e.g., 3-5 specimens per species),
+higher values (0.75-0.80) are recommended to avoid frequent replicate failures.
+
+================================================================================
+11. COMMON ERRORS AND TROUBLESHOOTING
+================================================================================
+
+ERROR:
+  "coords_aligned = TRUE but has_age_label = FALSE"
+CAUSE:
+  The flags indicate pre-aligned coordinates but no developmental indicator,
+  which is an unsupported combination.
+SOLUTION:
+  Either provide a TPS file with AGE= labels and set has_age_label = TRUE,
+  or set coords_aligned = FALSE to align raw coordinates and use
+  log(centroid size) as the developmental indicator.
+
+ERROR:
+  "The number of AGE values does not match the number of specimens"
+CAUSE:
+  The TPS file has a different number of AGE= lines and specimen blocks.
+SOLUTION:
+  Check the TPS file for specimens missing the AGE= field.
+  Ensure tps_devtime_keyword matches exactly the keyword in your TPS file.
+
+ERROR:
+  "The following tree tips are missing from the morphometric data"
+CAUSE:
+  One or more tip labels in the tree are not present in the TPS species names.
+SOLUTION:
+  Check for spelling differences, extra spaces, or case mismatches between
+  the tree tip labels and the TPS IDs (after any Species extraction logic).
+
+ERROR:
+  "Species X has fewer than 2 specimens"
+CAUSE:
+  A species has only one specimen in the TPS file.
+SOLUTION:
+  Remove that species from both the TPS file and the tree, or add specimens.
+
+ERROR:
+  "Species X has no variation in Devtime/AGE"
+CAUSE:
+  All specimens of a species have the same AGE value (or the same centroid
+  size when using log(CS) mode).
+SOLUTION:
+  This species cannot be used for regression. Remove it or provide specimens
+  with varying developmental times.
+
+ERROR:
+  "No valid bootstrap replicates were obtained"
+CAUSE:
+  All bootstrap attempts fail the validity checks, typically because
+  species are too small to survive subsampling.
+SOLUTION:
+  Increase resampling_proportion (e.g., to 0.80 or 0.90).
+  Check that all species have at least 3 specimens if resampling is expected.
+
+WARNING:
+  "The tree does not contain branch lengths. All branch lengths have been
+   set to 1. The analysis will proceed with an ultrametric tree."
+CAUSE:
+  The Newick file does not include branch lengths.
+ACTION:
+  The analysis continues with unit branch lengths. For more reliable ancestral
+  reconstruction, provide a tree with meaningful branch lengths if possible.
+
+WARNING:
+  "Only N valid bootstrap replicates were obtained out of the requested M"
+CAUSE:
+  Some replicates failed validity checks. The analysis continues with N replicates.
+ACTION:
+  Recovery percentages are still valid, calculated using N as the denominator.
+  Consider increasing resampling_proportion or n_iter if N is much smaller than M.
+
+ISSUE:
+  Bootstrap runs very slowly
+CAUSE:
+  Large datasets or high failure rate per attempt.
+SUGGESTION:
+  Reduce n_iter for exploratory runs (e.g., n_iter <- 10).
+  Increase resampling_proportion to reduce replicate failures.
+
+================================================================================
+12. GLOSSARY
+================================================================================
+
+  Ancestor-descendant pair
+    A pair of nodes in the phylogenetic tree connected by a single branch.
+    The ancestor is the internal node; the descendant is either a tip (species)
+    or another internal node.
+
+  Bootstrap recovery
+    The percentage of valid bootstrap replicates that reproduce the same
+    heterochronic classification as the observed (full-dataset) analysis
+    for a given branch.
+
+  Centroid size
+    A measure of overall landmark configuration size, defined as the square
+    root of the sum of squared distances from each landmark to the centroid
+    of the configuration. Extracted by gpagen() for each specimen. Used as
+    a proxy for developmental stage when has_age_label = FALSE.
+
+  DevtimeTwo
+    Internal name for the scaled developmental indicator used in regressions.
+    Derived from the raw Devtime values after per-species min-max normalization.
+
+  diff_ratio
+    The key classification metric: |dist_A - dist_B| / mean(dist_A, dist_B).
+    Measures the relative difference between the two Procrustes distances
+    used to classify heterochrony.
+
+  dist_A
+    Procrustes distance from the ancestor's maximum shape to the shared
+    juvenile archetype (shape_0). Represents how far the ancestor developed
+    beyond the juvenile stage.
+
+  dist_B
+    Procrustes distance from the shared juvenile archetype (shape_0) to the
+    descendant's maximum shape. Represents how far the descendant developed
+    beyond the juvenile stage.
+
+  Geomorph data frame (gdf)
+    A specialized list structure from the geomorph package that holds
+    landmark coordinates together with associated variables (species,
+    developmental indicator, ID) for use in procD.lm(). The Devtime field
+    is present only when has_age_label = TRUE or after gpagen() assigns it.
+
+  gpagen()
+    Generalized Procrustes Analysis function from the geomorph package.
+    Aligns raw landmark configurations by removing differences in size,
+    position, and orientation. Also returns centroid size per specimen
+    (gpagen()$Csize), which is used as the developmental indicator when
+    has_age_label = FALSE.
+
+  Heterochrony
+    Evolutionary change in the timing or rate of development. Here
+    assessed as differences in how far a lineage's adult shape deviates
+    from a shared juvenile reference.
+
+  log(centroid size)
+    The natural logarithm of centroid size, used as the developmental
+    indicator when coords_aligned = FALSE and has_age_label = FALSE.
+    Log-transformation stabilizes variance and linearizes the relationship
+    between size and developmental stage.
+
+  NC (No Change)
+    Branch classification where the distance ratio falls below the threshold,
+    meaning the difference in developmental offset between ancestor and
+    descendant is too small to be classified as heterochronic.
+
+  Paedomorphosis
+    Heterochronic pattern where the descendant retains more juvenile-like
+    features relative to its ancestor (dist_A > dist_B).
+
+  Peramorphosis
+    Heterochronic pattern where the descendant shows a more developmentally
+    advanced shape than its ancestor (dist_B > dist_A).
+
+  Procrustes distance
+    A measure of shape difference between two configurations of landmarks
+    after generalized Procrustes alignment (removing size, position, and
+    orientation differences).
+
+  shape_0
+    The shared juvenile archetype: the predicted landmark configuration at
+    DevtimeTwo = 0, estimated from a Procrustes regression with species
+    interaction across all specimens.
+
+  TPS file
+    Thin-Plate Spline file format, a standard text format for storing
+    landmark coordinate data in geometric morphometrics.
+
+  Ultrametric tree
+    A phylogenetic tree where all root-to-tip path lengths are equal.
+    When a tree without branch lengths is provided, the script assigns
+    unit branch lengths to all edges and proceeds as if the tree were
+    ultrametric.
+
+================================================================================
+END OF DOCUMENTATION  -  phylo.peram.test.R
+================================================================================
