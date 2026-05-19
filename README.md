@@ -11,7 +11,7 @@ The method is designed for comparative studies of ontogenetic shape evolution an
 ## Authors
 
 **Natalia González-Piñeres**  
-PhD scholar
+Research scholar - becaria doctoral
 Unidad Ejecutora Lillo (UEL-FML-CONICET)
 
 **Santiago A. Catalano**  
